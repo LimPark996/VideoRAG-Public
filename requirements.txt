@@ -1,0 +1,58 @@
+# ===== VideoRAG Prototype Requirements =====
+# Google Colab T4 기준
+
+# --- Core ---
+torch>=2.0.0
+torchvision>=0.15.0
+transformers>=4.35.0
+numpy>=1.24.0
+pandas>=2.0.0
+
+# --- Search & Retrieval ---
+rank_bm25>=0.2.2          # BM25 sparse retrieval
+faiss-cpu>=1.7.4          # FAISS vector search (CPU version for Colab stability)
+
+# --- ColBERT Reranking ---
+ragatouille>=0.0.8        # ColBERT v2 wrapper (RAGatouille)
+
+# --- Video Processing ---
+moviepy>=1.0.3            # Video editing & assembly
+opencv-python>=4.8.0      # Frame extraction
+Pillow>=10.0.0            # Image processing
+
+# --- DINOv2 Visual Features ---
+timm>=0.9.0               # PyTorch Image Models (DINOv2)
+
+# --- TransNetV2 Shot Detection ---
+# git clone https://github.com/soCzech/TransNetV2
+# pip install -e TransNetV2/inference/
+
+# --- InternVideo2 ---
+huggingface_hub>=0.19.0   # Model download
+
+# --- C2PA ---
+cryptography>=41.0.0      # ES256 signing
+
+# --- Demo UI ---
+gradio>=4.0.0             # Web-based demo interface
+
+# --- Evaluation ---
+scikit-learn>=1.3.0       # Metrics computation
+scipy>=1.11.0             # Statistical analysis
+
+# --- v2: Query Preprocessing ---
+langdetect>=1.0.9         # 쿼리 언어 감지 (한/영)
+requests>=2.28.0          # Papago API 호출 (한→영 번역)
+
+# --- v2: MockMetadataGenerator ---
+openai>=1.0.0             # GPT-4o-mini Vision (mock 메타데이터 생성)
+
+# --- v2: Quality Dashboard ---
+plotly>=5.0.0             # TC-Score 게이지, 트랜지션 파이 차트
+
+# --- v2: NLP ---
+spacy>=3.5.0              # BM25 lemmatizer (영어)
+
+# --- Utilities ---
+tqdm>=4.66.0              # Progress bars
+tokenizers>=0.15.0        # BPE tokenizer

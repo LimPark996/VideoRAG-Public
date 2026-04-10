@@ -1,0 +1,32 @@
+[
+  {
+    "query": "a man playing guitar",
+    "description": "기본 시나리오 — 악기 연주 장면 검색",
+    "relevant_clips": ["video7002", "video7003", "video7010", "video7015"],
+    "category": "music"
+  },
+  {
+    "query": "people cooking food in kitchen",
+    "description": "일상 장면 — 요리 장면 검색",
+    "relevant_clips": ["video7050", "video7051", "video7060"],
+    "category": "daily"
+  },
+  {
+    "query": "outdoor sports activity",
+    "description": "스포츠 — 야외 스포츠 장면 검색",
+    "relevant_clips": ["video7100", "video7105", "video7110", "video7115"],
+    "category": "sports"
+  },
+  {
+    "query": "interview news broadcast",
+    "description": "방송 관련 — 뉴스/인터뷰 장면",
+    "relevant_clips": ["video7200", "video7205"],
+    "category": "broadcast"
+  },
+  {
+    "query": "car driving on highway",
+    "description": "이동 장면 — 고속도로 주행 검색",
+    "relevant_clips": ["video7300", "video7310", "video7315"],
+    "category": "driving"
+  }
+]

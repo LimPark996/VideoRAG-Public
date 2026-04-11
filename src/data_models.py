@@ -208,25 +208,6 @@ class VideoRAGResult:
     # v2 확장: 품질 요약 (시연용 대시보드)
     quality_summary: Optional[Dict] = None
 
-    def export_timeline(self, format: str = 'premiere') -> str:
-        """NLE 타임라인 내보내기"""
-        from src.output.timeline_exporter import TimelineExporter
-        exporter = TimelineExporter()
-        if format == 'premiere':
-            return exporter.export_premiere_xml(self.clips, self.transitions)
-        elif format == 'davinci':
-            return exporter.export_davinci_edl(self.clips, self.transitions)
-        elif format == 'fcpxml':
-            return exporter.export_fcpxml(self.clips, self.transitions)
-        else:
-            raise ValueError(f"지원하지 않는 포맷: {format}")
-
-    def export_clips_zip(self) -> str:
-        """개별 클립 + 메타데이터 ZIP 내보내기"""
-        from src.output.timeline_exporter import TimelineExporter
-        return TimelineExporter().export_clips_zip(self.clips)
-
-
 @dataclass
 class LatencyTracker:
     """단계별 레이턴시 측정 유틸리티"""

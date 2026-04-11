@@ -21,7 +21,6 @@ from .phase12_search import BM25Retriever, DenseRetriever, HybridFusion
 from .phase3_reranking import ColBERTReranker
 from .phase4_assembly import VideoAssembler, VisualScorer, TCScorer
 from .phase5_c2pa import C2PATagger
-from .output import TimelineExporter, ProvenanceReport
 
 logger = logging.getLogger(__name__)
 
@@ -80,12 +79,6 @@ class VideoRAGPipeline:
         self.assembler = VideoAssembler(output_dir=output_dir)
         self.tc_scorer = TCScorer()
         self.c2pa_tagger = C2PATagger()
-
-        # v2: TimelineExporter (NLE 타임라인 내보내기)
-        self.timeline_exporter = TimelineExporter()
-
-        # v2: ProvenanceReport (출처 리포트 HTML)
-        self.provenance_report = ProvenanceReport()
 
         # 클립 메타데이터
         self.clip_metadata: Dict[str, ClipMeta] = {}

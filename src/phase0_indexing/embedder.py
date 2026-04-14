@@ -729,6 +729,86 @@ class VideoEmbedder:
             feat = self.model.get_vid_feat(batch)
             return feat.cpu().float().numpy()
 
+    @torch.no_grad()
+    def encode_clips_itm(
+        self,
+        clip_frames: List[List[np.ndarray]],
+        batch_size: int = 4,
+    ) -> "torch.Tensor":
+        """ITM용 vision full token 시퀀스 추출 — InternVideo2 전용
+
+        ITC용 encode_clips()는 vision_proj 후 CLS 512-dim 벡터만 반환하지만,
+        ITM은 text 40토큰과 cross-attention하려면 vision encoder의 전체 토큰이 필요.
+
+        encode_vision()[0] = last_hidden_state [B, 1025, 1408]
+          - 1025 = 1(cls) + 1024(patch tokens, 4프레임 × 14×14×4 = 1024... T4 224px 기준)
+          - 1408 = vision encoder hidden dim (d_model)
+
+        Args:
+            clip_frames: 클립별 프레임 리스트 List[List[ndarray]] — [N, num_frames, H, W, 3]
+            batch_size: 배치 크기 (full token은 무거우므로 4 권장, OOM 시 2로 낮춤)
+
+        Returns:
+            torch.Tensor [N, 1025, 1408] float16, CPU
+            (메모리 절약: fp16 + CPU 보관, 사용 시 .to(device, dtype=model_dtype))
+        """
+        self.load_model()
+
+        if self._model_type != "internvideo2":
+            raise RuntimeError(
+                "encode_clips_itm()는 InternVideo2 모델에서만 지원됩니다. "
+                f"현재 model_type='{self._model_type}'"
+            )
+
+        if INTERNVIDEO2_CODE_PATH not in sys.path:
+            sys.path.insert(0, INTERNVIDEO2_CODE_PATH)
+        from demo.utils import frames2tensor
+
+        n_clips = len(clip_frames)
+        n_batches = (n_clips + batch_size - 1) // batch_size
+        print(f'\n🎞️  [encode_clips_itm] ITM용 vision full token 추출')
+        print(f'   클립 수   : {n_clips}개')
+        print(f'   batch_size: {batch_size}  (ITC보다 작음 — full token 메모리 부담)')
+        print(f'   예상 출력 : [{n_clips}, 1025, 1408] fp16')
+
+        all_vis_feats = []
+
+        for i in range(0, n_clips, batch_size):
+            batch_frame_lists = clip_frames[i:i + batch_size]
+            batch_tensors = []
+
+            for frame_list in batch_frame_lists:
+                tensor = frames2tensor(
+                    frame_list,
+                    fnum=self.num_frames,
+                    target_size=(224, 224),
+                    device=torch.device(self.device)
+                )
+                batch_tensors.append(tensor)
+
+            # [B, T, C, H, W]
+            batch = torch.cat(batch_tensors, dim=0)
+            if self.use_fp16:
+                batch = batch.half()
+
+            # encode_vision()[0] = last_hidden_state [B, 1025, 1408]
+            # (ITC의 get_vid_feat()는 vision_proj(cls_token) → 512-dim만 반환)
+            vis_feat, _ = self.model.encode_vision(batch, test=True)
+
+            # fp16으로 CPU 저장 (VRAM 해제)
+            all_vis_feats.append(vis_feat.cpu().half())
+
+            batch_idx = i // batch_size + 1
+            if batch_idx % 5 == 0 or batch_idx == n_batches:
+                print(f'   배치 진행: {batch_idx}/{n_batches}  '
+                      f'({min(i + batch_size, n_clips)}/{n_clips} clips)')
+
+        result = torch.cat(all_vis_feats, dim=0)  # [N, 1025, 1408]
+        mem_gb = result.element_size() * result.nelement() / 1e9
+        print(f'✅ [encode_clips_itm 완료] shape={tuple(result.shape)}  '
+              f'dtype={result.dtype}  메모리≈{mem_gb:.2f}GB')
+        return result
+
     def _random_embed(self, n: int) -> np.ndarray:
         """랜덤 임베딩 (모델 없을 때 구조 테스트용)"""
         emb = np.random.randn(n, EMBED_DIM).astype(np.float32)

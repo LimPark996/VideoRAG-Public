@@ -654,6 +654,89 @@ class VideoIndexer:
         )
         return result
 
+    def build_itm_vision_features(
+        self,
+        video_dir: str,
+        metadata_csv: Optional[str] = None,
+        max_clips: Optional[int] = None,
+        batch_size: int = 4,
+    ) -> str:
+        """ITM용 vision full token 시퀀스 사전 추출 및 저장
+
+        ITC 인덱스(FAISS) 구축 이후 별도 실행하는 단계.
+        ColBERT 이후 ITM 재순위에 쓸 vision full token [N, 1025, 1408]을
+        미리 계산해두어, 쿼리 타임에 영상 재인코딩 없이 즉시 로드 가능하게 함.
+
+        저장 파일: {index_dir}/itm_vision_features.pt
+          → {'clip_ids': List[str], 'features': Tensor[N, 1025, 1408] fp16}
+
+        용량 참고 (fp16):
+          1000클립 × 1025 × 1408 × 2bytes ≈ 2.9GB
+          콜랩 Drive에 저장 권장 (런타임 재시작 후 재사용 가능)
+
+        Args:
+            video_dir: 영상 파일 디렉토리
+            metadata_csv: MSR-VTT 메타데이터 CSV (없으면 기존 clip_metadata 사용)
+            max_clips: 최대 클립 수 제한 (테스트용)
+            batch_size: encode_clips_itm() 배치 크기 (OOM 시 2로 낮춤)
+
+        Returns:
+            str: 저장 경로
+        """
+        import torch
+
+        os.makedirs(self.index_dir, exist_ok=True)
+
+        # ── 클립 목록 확정 ─────────────────────────────────────────────
+        # 우선순위: 1) 이미 self.clip_metadata 로드됨 → 재사용
+        #           2) metadata_csv 있으면 로드
+        #           3) video_dir에서 직접 탐색
+        if self.clip_metadata:
+            clips = list(self.clip_metadata.values())
+            print(f'\n📋 [ITM feature] 기존 clip_metadata 사용: {len(clips)}개 클립')
+        elif metadata_csv and os.path.exists(metadata_csv):
+            clips = self._load_metadata_csv(metadata_csv, video_dir)
+            print(f'\n📄 [ITM feature] metadata_csv에서 로드: {len(clips)}개 클립')
+        else:
+            clips = self._build_clips_from_videos(video_dir)
+            print(f'\n🎬 [ITM feature] 영상에서 클립 탐지: {len(clips)}개 클립')
+
+        if max_clips:
+            clips = clips[:max_clips]
+            print(f'   ⚠️  max_clips={max_clips} 제한 적용')
+
+        clip_ids = [c.clip_id for c in clips]
+
+        # ── 프레임 추출 ────────────────────────────────────────────────
+        print(f'\n🖼️  [ITM feature Step 1] 프레임 추출 중...')
+        frames = self._extract_clip_frames(clips)
+
+        # ── ITM vision feature 추출 ────────────────────────────────────
+        print(f'\n⚡ [ITM feature Step 2] encode_clips_itm() 실행 중...')
+        print(f'   예상 소요: 클립당 약 0.35초 × {len(clips)}클립 ≈ {len(clips)*0.35/60:.1f}분 (T4 기준)')
+        vis_feats = self.embedder.encode_clips_itm(frames, batch_size=batch_size)
+        # vis_feats: [N, 1025, 1408] fp16 CPU tensor
+
+        # ── 저장 ──────────────────────────────────────────────────────
+        itm_path = os.path.join(self.index_dir, 'itm_vision_features.pt')
+        print(f'\n💾 [ITM feature Step 3] 저장 중: {itm_path}')
+        torch.save({
+            'clip_ids': clip_ids,
+            'features': vis_feats,   # [N, 1025, 1408] fp16
+        }, itm_path)
+
+        mem_gb = vis_feats.element_size() * vis_feats.nelement() / 1e9
+        print(f'✅ [ITM feature 완료] {len(clips)}클립 저장')
+        print(f'   경로  : {itm_path}')
+        print(f'   shape : {tuple(vis_feats.shape)}')
+        print(f'   크기  : {mem_gb:.2f}GB (fp16)')
+
+        logger.info(
+            f'ITM vision feature 저장: {itm_path} '
+            f'({len(clips)} clips, {tuple(vis_feats.shape)}, {mem_gb:.2f}GB)'
+        )
+        return itm_path
+
     def load_index(self):
         """사전 구축된 인덱스 로드 (발표 당일 사용)"""
         faiss_path = os.path.join(self.index_dir, 'faiss_ivfflat.index')

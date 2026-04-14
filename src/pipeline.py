@@ -18,7 +18,7 @@ from .data_models import (
 from .input import QueryPreprocessor, PreprocessedQuery
 from .phase0_indexing import VideoIndexer, VideoEmbedder, FAISSVectorStore
 from .phase12_search import BM25Retriever, DenseRetriever, HybridFusion
-from .phase3_reranking import ColBERTReranker
+from .phase3_reranking import ColBERTReranker, ITMScorer
 from .phase4_assembly import VideoAssembler, VisualScorer, TCScorer
 from .phase5_c2pa import C2PATagger
 
@@ -76,6 +76,9 @@ class VideoRAGPipeline:
             k=self.config.get("rrf_k", 60)
         )
         self.reranker = ColBERTReranker()
+        # ITMScorer: load_index() 시 itm_vision_features.pt 존재 여부 확인 후 활성화
+        # itm_features.pt가 없으면 None → Phase 3b 건너뜀 (ColBERT만 적용)
+        self.itm_scorer: Optional[ITMScorer] = None
         self.assembler = VideoAssembler(output_dir=output_dir)
         self.tc_scorer = TCScorer()
         self.c2pa_tagger = C2PATagger()
@@ -112,10 +115,28 @@ class VideoRAGPipeline:
             with open(meta_path, "rb") as f:
                 self.clip_metadata = pickle.load(f)
 
+        # ITMScorer: itm_vision_features.pt 있을 때만 활성화
+        itm_path = os.path.join(self.index_dir, "itm_vision_features.pt")
+        if os.path.exists(itm_path):
+            self.embedder.load_model()  # iv_model 확보
+            self.itm_scorer = ITMScorer(
+                iv_model=self.embedder.model,
+                itm_features_path=itm_path,
+                bs_itm=self.config.get("bs_itm", 32),
+            )
+            logger.info(f"ITMScorer 활성화: {itm_path}")
+        else:
+            self.itm_scorer = None
+            logger.info(
+                f"ITMScorer 비활성화: {itm_path} 없음 "
+                f"(indexer.build_itm_vision_features() 실행 후 재시도)"
+            )
+
         self._loaded = True
         logger.info(
             f"인덱스 로드 완료: {self.vector_store.ntotal} vectors, "
-            f"{len(self.clip_metadata)} clips"
+            f"{len(self.clip_metadata)} clips  "
+            f"ITM={'활성' if self.itm_scorer else '비활성'}"
         )
 
     def _run_search_pipeline(
@@ -204,17 +225,20 @@ class VideoRAGPipeline:
         )
 
         # ─────────────────────────────────────────
-        # Phase 3: ColBERT Reranking (~350ms)
+        # Phase 3a: ColBERT Reranking (~350ms)
+        # ITM이 활성화된 경우 pool을 더 크게 유지 (top_k * 2.5 정도)
         # ─────────────────────────────────────────
         _phase("phase3_reranking")
         _rerank_pool = 100
+        # ITM 활성 시 ColBERT에서 더 많이 뽑아 ITM이 선별할 여지 확보
+        _colbert_top_k = min(int(top_k * 2.5), _rerank_pool) if self.itm_scorer else top_k
         clip_captions = {
             cid: self.clip_metadata[cid].caption
             for cid, _ in fused_results[:_rerank_pool]
             if cid in self.clip_metadata
         }
         reranked = self.reranker.rerank(
-            en_query, fused_results[:_rerank_pool], clip_captions, top_k=top_k
+            en_query, fused_results[:_rerank_pool], clip_captions, top_k=_colbert_top_k
         )
 
         # ClipResult에 메타데이터 보강
@@ -229,9 +253,25 @@ class VideoRAGPipeline:
 
         _done("phase3_reranking")
         logger.info(
-            f"[Phase 3] ColBERT: {len(reranked)} reranked clips "
+            f"[Phase 3a] ColBERT: {len(reranked)} reranked clips "
             f"({tracker.all_latencies['phase3_reranking']:.1f}ms)"
         )
+
+        # ─────────────────────────────────────────
+        # Phase 3b: ITM Reranking (선택적 — itm_vision_features.pt 있을 때만)
+        # ColBERT top-(top_k*2.5) → ITM으로 최종 top_k 선별
+        # ─────────────────────────────────────────
+        if self.itm_scorer:
+            _phase("phase3b_itm")
+            reranked = self.itm_scorer.rerank(en_query, reranked, top_k=top_k)
+            _done("phase3b_itm")
+            logger.info(
+                f"[Phase 3b] ITM: {len(reranked)} final clips "
+                f"({tracker.all_latencies['phase3b_itm']:.1f}ms)"
+            )
+        else:
+            # ITM 없으면 ColBERT 결과를 top_k로 자름
+            reranked = reranked[:top_k]
 
         self._last_tracker = tracker  # Gradio UI에서 단계별 레이턴시 접근용
 
@@ -245,6 +285,7 @@ class VideoRAGPipeline:
             "dense_top3": [(cid, f"{s:.4f}") for cid, s in dense_results[:3]],
             "fused_top3": [(cid, f"{s:.4f}") for cid, s in fused_results[:3]],
             "reranked_top3": [(c.clip_id, f"{c.score:.4f}") for c in reranked[:3]],
+            "itm_active": self.itm_scorer is not None,
         }
 
         return en_query, reranked, tracker

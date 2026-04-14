@@ -245,7 +245,7 @@ class ITMScorer:
             max_length=max_txt_l,
             return_tensors="pt",
         )
-        tok = {k: v.to(self.device) for k, v in tok.items()}
+        tok = tok.to(self.device)  # BatchEncoding.to() — 구조 유지
 
         # encode_text()[0] = last_hidden_state [1, 40, 1024]  (full 토큰 시퀀스)
         # encode_text()[1] = pooled_text_embeds [1, 1024]     (ITC용 CLS — 여기선 불필요)

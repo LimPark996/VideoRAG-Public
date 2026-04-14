@@ -115,6 +115,23 @@ class VideoRAGPipeline:
             with open(meta_path, "rb") as f:
                 self.clip_metadata = pickle.load(f)
 
+            # video_path 경로 검증 및 재매핑
+            # 인덱싱 시점의 절대경로가 현재 런타임에서 유효하지 않을 수 있음
+            # → 저장된 경로가 없으면 index_dir 기준으로 video_dir를 추정해서 fallback
+            _video_dir_candidate = os.path.join(
+                os.path.dirname(os.path.dirname(self.index_dir)),
+                "data", "msrvtt", "videos"
+            )
+            _broken = 0
+            for meta in self.clip_metadata.values():
+                if not os.path.exists(meta.video_path):
+                    fallback = os.path.join(_video_dir_candidate, f"{meta.clip_id}.mp4")
+                    if os.path.exists(fallback):
+                        meta.video_path = fallback
+                        _broken += 1
+            if _broken:
+                logger.info(f"video_path 재매핑: {_broken}개 클립 경로 복구 ({_video_dir_candidate})")
+
         # ITMScorer: itm_vision_features.pt 있을 때만 활성화
         itm_path = os.path.join(self.index_dir, "itm_vision_features.pt")
         if os.path.exists(itm_path):

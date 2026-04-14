@@ -303,6 +303,81 @@ class ITMScorer:
         return result
 
     @torch.no_grad()
+    def compute_itm_topk_matrix(
+        self,
+        text_feats_all: torch.Tensor,   # [N_txt, 40, 1024] fp16 CPU
+        text_atts_all: torch.Tensor,    # [N_txt, 40] CPU
+        ordered_vids: List[str],        # N_vid개 video_id 순서
+        topk_indices: torch.Tensor,     # [N_txt, K] — ITC top-K 영상 인덱스
+    ) -> torch.Tensor:
+        """평가용: ITC top-K 후보에 대해서만 ITM 스코어 계산
+
+        compute_itm_matrix()의 top-k 필터 버전.
+        top-K에 없는 (쿼리, 영상) 쌍의 점수는 -inf로 초기화되므로,
+        R@k 계산 시 정답이 top-K 밖이면 자동으로 낮은 순위가 된다.
+
+        Args:
+            text_feats_all: [N_txt, 40, 1024]
+            text_atts_all:  [N_txt, 40]
+            ordered_vids:   N_vid개 video_id 순서
+            topk_indices:   [N_txt, K] — 각 쿼리의 ITC top-K 영상 인덱스
+
+        Returns:
+            torch.Tensor [N_txt, N_vid] — ITM 스코어 행렬
+            (top-K 외 항목은 float('-inf'))
+        """
+        self.load()
+
+        N_txt = text_feats_all.shape[0]
+        N_vid = len(ordered_vids)
+        scores = torch.full((N_txt, N_vid), float('-inf'))
+        model_dtype = next(self.iv_model.parameters()).dtype
+        enc = self.iv_model.get_text_encoder()
+
+        # 영상 인덱스 → 해당 영상이 top-K에 포함된 쿼리 목록
+        # (불필요한 영상 로드를 완전히 스킵하기 위한 역방향 인덱스)
+        vid_query_map: Dict[int, List[int]] = {}
+        for qi in range(N_txt):
+            for vi in topk_indices[qi].tolist():
+                vid_query_map.setdefault(vi, []).append(qi)
+
+        from tqdm import tqdm
+        for vi, query_list in tqdm(
+            vid_query_map.items(), desc="ITM scoring (top-k)", total=len(vid_query_map)
+        ):
+            vid_id = ordered_vids[vi]
+            if vid_id not in self.vis_feat_dict:
+                for qi in query_list:
+                    scores[qi, vi] = -999.0
+                continue
+
+            vf = self.vis_feat_dict[vid_id].unsqueeze(0).to(
+                self.device, dtype=model_dtype
+            )  # [1, 1025, 1408]
+
+            # query_list를 bs_itm 단위로 배치 처리
+            for batch_start in range(0, len(query_list), self.bs_itm):
+                batch_qi = query_list[batch_start : batch_start + self.bs_itm]
+                idx = torch.tensor(batch_qi)
+                tf = text_feats_all[idx].to(self.device, dtype=model_dtype)
+                ta = text_atts_all[idx].to(self.device)
+                bs = tf.shape[0]
+
+                out = enc(
+                    encoder_embeds=tf,
+                    attention_mask=ta,
+                    encoder_hidden_states=vf.expand(bs, -1, -1),
+                    encoder_attention_mask=None,
+                    return_dict=True,
+                    mode="fusion",
+                )
+                s = self.itm_head(out.last_hidden_state[:, 0].float())[:, 1]
+                for k_idx, qi in enumerate(batch_qi):
+                    scores[qi, vi] = s[k_idx].item()
+
+        return scores
+
+    @torch.no_grad()
     def compute_itm_matrix(
         self,
         text_feats_all: torch.Tensor,   # [N_txt, 40, 1024] fp16 CPU

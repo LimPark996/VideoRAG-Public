@@ -727,10 +727,14 @@ class InversePromptEngine:
     def _apply_runway(
         self, video_path: str, prompt: str, output_path: str
     ) -> Dict[str, Any]:
-        """Runway SDK를 통한 영상 변환 (image-to-video)
+        """Runway SDK를 통한 영상 변환 (video-to-video)
 
-        1. 입력 영상의 첫 프레임을 추출 → base64 data URI
-        2. Runway SDK image_to_video.create() → 폴링으로 완료 대기
+        원본 영상의 모션/구도를 보존하면서 분위기/스타일만 변환.
+        image_to_video와 달리 입력 영상 전체를 base64로 전달하므로
+        촬영된 움직임이 그대로 유지됨.
+
+        1. 입력 영상을 base64 data URI로 인코딩
+        2. Runway SDK video_to_video.create() → 폴링으로 완료 대기
         3. 결과 영상 다운로드 → output_path + Drive 백업
         """
         try:
@@ -742,34 +746,43 @@ class InversePromptEngine:
 
             client = self._get_runway_client()
 
-            # ── Step 1: 첫 프레임 추출 ──
-            logger.info(f"[Runway 1/4] 입력 영상에서 첫 프레임 추출: {video_path}")
+            # ── Step 1: 원본 영상 정보 확인 + base64 인코딩 ──
+            logger.info(f"[Runway 1/4] 입력 영상 로드 중: {video_path}")
             cap = cv2.VideoCapture(video_path)
-            ret, frame = cap.read()
+            fps = cap.get(cv2.CAP_PROP_FPS) or 25.0
+            total_frames = cap.get(cv2.CAP_PROP_FRAME_COUNT)
+            w = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+            h = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
             cap.release()
-            if not ret:
-                raise RuntimeError(f"프레임 추출 실패: {video_path}")
 
-            h, w = frame.shape[:2]
-            _, buffer = cv2.imencode('.jpg', frame, [cv2.IMWRITE_JPEG_QUALITY, 95])
-            image_b64 = base64.b64encode(buffer).decode()
-            image_uri = f"data:image/jpeg;base64,{image_b64}"
-            logger.info(f"[Runway 1/4] 프레임 추출 완료 ({w}x{h}, {len(image_b64)//1024}KB base64)")
+            src_duration_sec = total_frames / fps if fps > 0 else 5.0
+            # Runway video_to_video 출력 길이: 5s 또는 10s 만 허용
+            # 원본이 7초 이상이면 10s, 미만이면 5s
+            out_duration = 10 if src_duration_sec >= 7.0 else 5
+
+            with open(video_path, "rb") as f:
+                video_bytes = f.read()
+            video_b64 = base64.b64encode(video_bytes).decode()
+            video_uri = f"data:video/mp4;base64,{video_b64}"
+            logger.info(
+                f"[Runway 1/4] 영상 인코딩 완료 "
+                f"({w}x{h}, {src_duration_sec:.1f}s, {len(video_bytes)//1024}KB → {len(video_b64)//1024}KB base64)"
+            )
 
             # ── Step 2: API 요청 전송 ──
             logger.info(
-                f"[Runway 2/4] API 요청 전송 중... "
-                f"(model={self.runway_model}, duration=5s, ratio=1280:720)"
+                f"[Runway 2/4] video_to_video 요청 전송 중... "
+                f"(model={self.runway_model}, duration={out_duration}s, ratio=1280:720)"
             )
             logger.info(f"[Runway 2/4] 프롬프트: {prompt[:120]}")
 
             t0 = time.time()
-            task = client.image_to_video.create(
+            task = client.video_to_video.create(
                 model=self.runway_model,
-                prompt_image=image_uri,
+                prompt_video=video_uri,
                 prompt_text=prompt,
                 ratio="1280:720",
-                duration=5,
+                duration=out_duration,
             )
 
             task_id = task.id

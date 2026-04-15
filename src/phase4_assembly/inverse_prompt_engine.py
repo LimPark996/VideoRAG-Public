@@ -837,12 +837,13 @@ class InversePromptEngine:
                 if not ret:
                     break
 
-                # 밝기 조정
+                # 밝기 조정 — alpha=1.0 고정, beta만 사용
+                # alpha를 건드리면 대비까지 변해 암흑/화이트아웃이 됨
                 if params['brightness'] != 0:
                     frame = cv2.convertScaleAbs(
                         frame,
-                        alpha=1.0 + params['brightness'] / 255.0,
-                        beta=params['brightness'] * 0.5
+                        alpha=1.0,
+                        beta=params['brightness']
                     )
 
                 # 색온도 조정 (간이 구현)
@@ -868,10 +869,27 @@ class InversePromptEngine:
             cap.release()
             writer.release()
 
+            # mp4v 컨테이너는 브라우저/Gradio에서 재생 시간이 깨지는 경우가 있음
+            # → ffmpeg으로 libx264 재인코딩하여 정상 mp4 생성
+            import subprocess as _sp
+            _tmp = output_path + ".raw.mp4"
+            os.rename(output_path, _tmp)
+            _r = _sp.run(
+                ["ffmpeg", "-y", "-i", _tmp,
+                 "-c:v", "libx264", "-preset", "ultrafast", "-an",
+                 output_path, "-loglevel", "error"],
+                capture_output=True,
+            )
+            os.remove(_tmp)
+            if _r.returncode != 0:
+                # ffmpeg 실패 시 raw 파일 복구
+                os.rename(_tmp if os.path.exists(_tmp) else output_path, output_path)
+                logger.warning(f"ffmpeg 재인코딩 실패 (returncode={_r.returncode}), raw mp4 사용")
+
             return {
                 "output_path": output_path,
                 "backend": "opencv",
-                "quality_score": 0.45,  # OpenCV 폴백은 품질 낮음
+                "quality_score": 0.45,
                 "success": True,
                 "params": params
             }
@@ -886,33 +904,38 @@ class InversePromptEngine:
             }
 
     def _parse_prompt_to_params(self, prompt: str) -> Dict[str, float]:
-        """프롬프트 텍스트에서 OpenCV 파라미터를 추출"""
+        """프롬프트 텍스트에서 OpenCV 파라미터를 추출
+
+        brightness: beta값 (픽셀 값 가산). alpha는 1.0 고정 — 암흑 방지.
+        temperature: 양수=따뜻(R↑B↓), 음수=차갑(B↑R↓). ±20 이내 권장.
+        saturation: 채도 배율. 0.8~1.2 범위 권장.
+        """
         params = {'brightness': 0, 'temperature': 0, 'saturation': 1.0}
         prompt_lower = prompt.lower()
 
-        # 밝기
+        # 밝기 — 극단적 값 금지: -60이면 convertScaleAbs alpha 효과와 합쳐져 암흑
         if 'nighttime' in prompt_lower or 'night' in prompt_lower:
-            params['brightness'] = -60
+            params['brightness'] = -25   # 어둑하게, 암흑 아님
         elif 'bright' in prompt_lower or 'morning' in prompt_lower:
-            params['brightness'] = 30
+            params['brightness'] = 15
         elif 'sunset' in prompt_lower or 'golden hour' in prompt_lower:
-            params['brightness'] = -20
+            params['brightness'] = -10
 
-        # 색온도
+        # 색온도 — ±20 범위로 제한
         if 'warm' in prompt_lower or 'sunset' in prompt_lower or 'golden' in prompt_lower:
-            params['temperature'] = 40
-        elif 'cold' in prompt_lower or 'winter' in prompt_lower or 'cool' in prompt_lower:
-            params['temperature'] = -40
-        elif 'night' in prompt_lower:
-            params['temperature'] = -30
+            params['temperature'] = 20
+        elif 'cold' in prompt_lower or 'winter' in prompt_lower:
+            params['temperature'] = -20
+        elif 'cool' in prompt_lower or 'night' in prompt_lower:
+            params['temperature'] = -15
 
         # 채도
         if 'winter' in prompt_lower or 'snow' in prompt_lower:
-            params['saturation'] = 0.6
+            params['saturation'] = 0.85
         elif 'summer' in prompt_lower or 'vivid' in prompt_lower:
-            params['saturation'] = 1.3
-        elif 'autumn' in prompt_lower:
             params['saturation'] = 1.15
+        elif 'autumn' in prompt_lower:
+            params['saturation'] = 1.1
 
         return params
 

@@ -666,10 +666,25 @@ class VideoEmbedder:
             else:
                 emb = text_features.pooler_output.cpu().float().numpy()
         else:
-            # InternVideo2: get_txt_feat() — BertTokenizer 토큰화 → text_proj → L2 정규화
-            emb = self.model.get_txt_feat(text).cpu().float().numpy()
+            # InternVideo2: mean pooling — CLS는 collapsed(cosine≈0.9997)이므로 사용 불가
+            # encode_text()[0]: [1, 40, 1024] full sequence → attention_mask로 mean pooling
+            # → text_proj(1024→512) → L2 정규화
+            import torch.nn.functional as F
+            tok = self.model.tokenizer(
+                text, return_tensors="pt", padding="max_length",
+                max_length=40, truncation=True
+            ).to(self.device)
+            model_dtype = next(self.model.parameters()).dtype
+            with torch.no_grad():
+                text_feats, _ = self.model.encode_text(tok)   # [1, 40, 1024]
+                text_feats = text_feats.to(dtype=model_dtype)
+                mask = tok.attention_mask.unsqueeze(-1).to(dtype=model_dtype)  # [1, 40, 1]
+                pooled = (text_feats * mask).sum(1) / mask.sum(1)              # [1, 1024]
+                projected = self.model.text_proj(pooled)                        # [1, 512]
+                projected = F.normalize(projected.float(), dim=-1)
+            emb = projected.cpu().numpy()  # [1, 512] float32, already L2-normalized
 
-        # L2 정규화
+        # L2 정규화 (CLIP path 등 위에서 정규화 안 된 경우 대비)
         norm = np.linalg.norm(emb, axis=1, keepdims=True)
         emb = emb / np.maximum(norm, 1e-8)
         emb = emb.astype(np.float32)

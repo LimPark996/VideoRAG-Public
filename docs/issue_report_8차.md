@@ -378,7 +378,7 @@ def mean_pool_text(text_feats, attention_mask):
 | 해결 방향 설계 | ✅ 완료 (논문 방식 배치 처리) |
 | `compute_itm_topk_matrix()` 구현 | ✅ 완료 (`itm_scorer.py`에 추가) |
 | `03_evaluation.ipynb` Cell 9 ITC pre-filter 적용 | ✅ 완료 (Step 1.5 추가, recall@128 진단 포함) |
-| 논문 수치 (R@1 51.9%) 재현 검증 | ⬜ 진행 예정 (Colab 실행 필요) |
+| 논문 수치 (R@1 51.9%) 재현 검증 | ❌ ITC pre-filter 실험 → 성능 하락 → full ITM 확정 |
 
 ---
 
@@ -439,6 +439,46 @@ USE_ITC_FILTER = recall_128 >= 80.0
 - `recall_128 < 80%`: ITC가 아직 collapse 상태로 판단 → `compute_itm_matrix()` 폴백
 
 실행 시 `recall_128` 수치가 먼저 출력되므로, 배치 처리 전환 후 ITC collapse 해소 여부를 즉시 확인할 수 있다.
+
+---
+
+## 8. ITC pre-filter 실험 결과 및 결론
+
+### 실험 조건
+
+배치 처리 전환 후 논문 방식 ITC → top-128 → ITM 파이프라인을 실제로 실행.
+
+```
+text_feats_all: (1000, 40, 1024)
+ITC recall@128: 77.5%
+USE_ITC_FILTER: True  →  compute_itm_topk_matrix() 호출
+소요: 8.5분
+```
+
+### 결과
+
+| 지표 | ITC→top-128→ITM | full ITM (기존) | 논문 |
+|------|-----------------|-----------------|------|
+| R@1  | 39.5% | 41.1% | 51.9% |
+| R@5  | 61.4% | 65.9% | 74.6% |
+| R@10 | 67.2% | 76.1% | 81.7% |
+| MdR  | 3 |2 | — |
+| MnR  | 33.6 | 23.6 | — |
+
+### 원인 분석
+
+ITC recall@128 = **77.5%** → 1000개 쿼리 중 225개는 top-128 안에 정답이 없음.  
+ITM이 아무리 잘 작동해도 이미 필터링으로 날아간 225개는 복구 불가능.  
+결과적으로 ITC pre-filter가 full ITM(41.1%)보다 **낮은 39.5%**를 기록.
+
+ITC collapse가 완전히 해소되지 않은 상태에서 pre-filter를 강제 적용하면 오히려 손해다.
+
+### 결론
+
+**ITC pre-filter 포기. full ITM 확정.**
+
+현재 논문과의 갭(-10.8%p)은 ITC collapse 미해결로 인한 구조적 한계.  
+추가 원인 추적(체크포인트 차이, vision feature mismatch 등) 없이는 51.9% 재현 불가.
 
 ---
 
@@ -561,11 +601,78 @@ ITC collapse 원인 추적:
 - "배치 크기 차이 때문" 가설 → 기술적으로 틀렸다 (BERT self-attention은 per-sequence)
 - **진짜 원인**: 미확정
 
-**해결책**: 평가 시 `get_txt_feat()` 1000번 반복 대신 논문의 배치 처리로 전환.  
-ITC pre-filter가 작동하면 top-128 → ITM → 논문 수치 51.9% 재현 목표.
+mean pooling으로 ITC collapse 우회 시도:
+- `encode_text()[0]` 전체 시퀀스 → attention_mask 가중 평균 → `text_proj` → 512-dim
+- recall@128 = **77.5%** (CLS 방식 44.2%에서 개선)
+- 하지만 ITC→top-128→ITM 실행 결과 R@1 = **39.5%** → full ITM(41.1%)보다 낮음
+- 이유: 1000개 중 225개(22.5%)는 top-128에서 이미 탈락 → ITM이 복구 불가
+
+**결론**: ITC pre-filter 포기. 평가는 full ITM(41.1%) 확정.
+
+---
+
+### 8구간 — 평가 vs Production 구분, dense 채널 복구 (8차 마무리)
+
+**recall@128의 의미 재정리**:
+
+`recall@128`은 R@1과 전혀 다른 지표다.
+
+```
+recall@128 = 77.5%
+→ 1000개 쿼리 중 77.5%는 ITC top-128 안에 정답이 있다
+→ 나머지 22.5%는 ITC 단계에서 이미 탈락 → ITM이 볼 기회 없음
+```
+
+**평가와 Production의 구조적 차이**:
+
+| | 평가 파이프라인 | Production 파이프라인 |
+|--|--|--|
+| ITC 역할 | exclusive gate (top-128만 ITM에 진입) | 보완 채널 (BM25, ColBERT와 병렬) |
+| recall@128=77.5% 영향 | 22.5% 손실 → R@1 하락 | dense 채널이 신호를 갖는가의 문제 |
+| CLS collapse 영향 | ITC pre-filter 사용 불가 | dense 검색 = 랜덤 노이즈 |
+
+평가에서 mean pooling이 오히려 R@1을 낮춘 것은 ITC가 exclusive gate이기 때문이다.  
+Production에서는 FAISS dense가 exclusive gate가 아니라 병렬 채널이므로,  
+"랜덤 노이즈(CLS collapse)"에서 "77.5% 신호(mean pooling)"로 바뀌는 것 자체가 개선이다.
+
+**`encode_query()` mean pooling 전환** (`embedder.py`):
+
+```python
+# 기존: get_txt_feat() → encode_text()[1] → CLS → text_proj → [1, 512]  (collapse)
+# 변경: encode_text()[0] → attention_mask mean pooling → text_proj → [1, 512]
+tok = model.tokenizer(text, padding="max_length", max_length=40, ...)
+text_feats, _ = model.encode_text(tok)           # [1, 40, 1024]
+mask = tok.attention_mask.unsqueeze(-1)          # [1, 40, 1]
+pooled = (text_feats * mask).sum(1) / mask.sum(1) # [1, 1024]
+projected = model.text_proj(pooled)               # [1, 512]
+```
+
+**왜 51.9%에 못 미치는가**:
+
+논문의 파이프라인이 51.9%를 내는 구조:
+
+```
+ITC (recall@128 ≈ 98%+) → top-128 (정제된 후보) → ITM → 51.9%
+```
+
+ITM이 이미 잘 걸러진 128개 안에서 순위를 매기므로 경쟁자가 적고 구별이 쉽다.
+
+우리:
+
+```
+ITC collapse → top-128 못 씀 → ITM이 1000개 전부 봄 → 41.1%
+```
+
+| 원인 | 설명 |
+|------|------|
+| ITC recall@128 = 77.5% | 논문 ≈98%+ 대비 현저히 낮음. 22.5% 손실 구조적 |
+| ITM이 1000개를 봄 | 무관한 영상 872개도 상대해야 해 ranking 노이즈 증가 |
+| collapse 원인 미확정 | 체크포인트 차이, vision feature mismatch 등 가능성 있으나 미검증 |
+
+ITC collapse 원인이 확정되고 해소되지 않는 한 51.9% 재현은 구조적으로 불가능하다.
 
 ---
 
 ### 한 줄로
 
-> test 영상 없음 → BGR 버그 → fp16 의심 → vision_proj SVD → is_pretrain 가설 → **ITM 없었음** → ITM 구현 → R@1 41.1% → ITC collapse 원인 추적 → 배치 처리 전환으로 51.9% 재현 시도 중
+> test 영상 없음 → BGR 버그 → fp16 의심 → vision_proj SVD → is_pretrain 가설 → **ITM 없었음** → ITM 구현 → R@1 41.1% → ITC collapse 분석 → mean pooling 시도(recall@128=77.5%) → ITC pre-filter는 오히려 손해 → **full ITM 확정(41.1%)**, production dense 채널은 mean pooling으로 복구

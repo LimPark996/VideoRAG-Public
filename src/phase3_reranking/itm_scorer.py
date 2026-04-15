@@ -64,7 +64,7 @@ class ITMScorer:
         iv_model,
         itm_features_path: str,
         device: Optional[str] = None,
-        bs_itm: int = 32,
+        bs_itm: int = 8,
     ):
         """
         Args:
@@ -179,17 +179,19 @@ class ITMScorer:
         self,
         text_feats: torch.Tensor,   # [B, 40, 1024] fp16
         text_atts: torch.Tensor,    # [B, 40]
-        vis_feat: torch.Tensor,     # [1, 1025, 1408] fp16
+        vis_feat: torch.Tensor,     # [B, 1025, 1408] fp16  (단일 영상이면 [1, 1025, 1408] → expand)
     ) -> torch.Tensor:
-        """텍스트 배치 × 단일 영상 ITM 점수 계산
+        """텍스트 배치 × 영상 배치 ITM 점수 계산
 
         Args:
             text_feats: 텍스트 full token [B, 40, 1024]
             text_atts: 어텐션 마스크 [B, 40]
-            vis_feat: vision full token [1, 1025, 1408]
+            vis_feat: vision full token [B, 1025, 1408] 또는 [1, 1025, 1408]
+                      — [1, ...] 이면 B개로 자동 expand (단일 영상 × 다수 쿼리)
+                      — [B, ...] 이면 그대로 사용 (다수 영상 × 다수 쿼리)
 
         Returns:
-            torch.Tensor [B] — 각 텍스트의 ITM 매칭 점수 (logit[:, 1])
+            torch.Tensor [B] — 각 (텍스트, 영상) 쌍의 ITM 매칭 점수 (logit[:, 1])
         """
         enc = self.iv_model.get_text_encoder()
         model_dtype = next(self.iv_model.parameters()).dtype  # fp16
@@ -253,32 +255,42 @@ class ITMScorer:
         text_feat_cpu = text_feat_full.cpu().half()    # [1, 40, 1024] fp16 CPU
         text_att_cpu = tok['attention_mask'].cpu()     # [1, 40]
 
-        # 후보 수만큼 repeat (배치 처리용)
         n_cands = len(candidates)
-        text_feats_rep = text_feat_cpu.expand(n_cands, -1, -1)  # [N, 40, 1024]
-        text_atts_rep = text_att_cpu.expand(n_cands, -1)        # [N, 40]
 
-        # ── 2. 영상별 ITM 점수 계산 (배치로 처리) ─────────────────────
+        # ── 2. 영상별 ITM 점수 계산 (bs_itm 단위 배치) ────────────────
+        # 클립마다 개별 forward pass를 날리는 대신 bs_itm개씩 묶어서 처리.
+        # vis_feat [bs, 1025, 1408] × text [bs, 40, 1024] 동시 forward.
         itm_scores_all = torch.zeros(n_cands)
         missing_count = 0
 
-        for vi, clip in enumerate(candidates):
-            cid = clip.clip_id
-            if cid not in self.vis_feat_dict:
-                missing_count += 1
-                itm_scores_all[vi] = -999.0  # feature 없는 clip은 최하위
+        for batch_start in range(0, n_cands, self.bs_itm):
+            batch_clips = candidates[batch_start:batch_start + self.bs_itm]
+
+            # feature가 있는 클립만 수집 (없는 클립은 -999 처리)
+            vis_list: List[torch.Tensor] = []
+            valid_local: List[int] = []  # batch 내 유효 인덱스
+            for bi, clip in enumerate(batch_clips):
+                if clip.clip_id not in self.vis_feat_dict:
+                    missing_count += 1
+                    itm_scores_all[batch_start + bi] = -999.0
+                else:
+                    vis_list.append(self.vis_feat_dict[clip.clip_id])
+                    valid_local.append(bi)
+
+            if not vis_list:
                 continue
 
-            vis_feat = self.vis_feat_dict[cid].unsqueeze(0)  # [1, 1025, 1408]
+            actual_bs = len(vis_list)
+            vis_batch = torch.stack(vis_list, dim=0)  # [actual_bs, 1025, 1408]
 
-            # 단일 영상에 대해 텍스트 1개 scoring
-            # (여러 쿼리를 batch로 처리할 수 있지만 여기선 쿼리=1개)
-            score = self.score_batch(
-                text_feats=text_feat_cpu,   # [1, 40, 1024]
-                text_atts=text_att_cpu,     # [1, 40]
-                vis_feat=vis_feat,          # [1, 1025, 1408]
-            )
-            itm_scores_all[vi] = score.item()
+            scores = self.score_batch(
+                text_feats=text_feat_cpu.expand(actual_bs, -1, -1),  # [actual_bs, 40, 1024]
+                text_atts=text_att_cpu.expand(actual_bs, -1),        # [actual_bs, 40]
+                vis_feat=vis_batch,                                   # [actual_bs, 1025, 1408]
+            )  # → [actual_bs]
+
+            for k, bi in enumerate(valid_local):
+                itm_scores_all[batch_start + bi] = scores[k].item()
 
         if missing_count > 0:
             logger.warning(

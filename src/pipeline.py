@@ -123,14 +123,20 @@ class VideoRAGPipeline:
                 "data", "msrvtt", "videos"
             )
             _broken = 0
+            _missing = 0
             for meta in self.clip_metadata.values():
                 if not os.path.exists(meta.video_path):
                     fallback = os.path.join(_video_dir_candidate, f"{meta.clip_id}.mp4")
                     if os.path.exists(fallback):
                         meta.video_path = fallback
                         _broken += 1
+                    else:
+                        meta.video_path = ""  # 파일 없음 명시 — 검색 결과에서 걸러냄
+                        _missing += 1
             if _broken:
                 logger.info(f"video_path 재매핑: {_broken}개 클립 경로 복구 ({_video_dir_candidate})")
+            if _missing:
+                logger.warning(f"영상 파일 없는 클립: {_missing}개 (video_path 공백 처리 → 검색 결과 제외)")
 
         # ITMScorer: itm_vision_features.pt 있을 때만 활성화
         itm_path = os.path.join(self.index_dir, "itm_vision_features.pt")

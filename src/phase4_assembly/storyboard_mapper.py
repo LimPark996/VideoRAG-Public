@@ -967,13 +967,24 @@ class StoryboardMapper:
         if excluded_clip_ids is None:
             excluded_clip_ids = set()
 
-        # ── 검색 (중복 제거 적용) ──
+        # ── 검색 (중복 제거 + 파일 존재 확인 적용) ──
         logger.info(
             f"[Scene {req.scene_id}] 검색 쿼리: '{req.description}' "
             f"(excluded: {len(excluded_clip_ids)}개)"
         )
         raw_candidates = self.search_fn(req.description, self.top_k)
-        candidates = [c for c in raw_candidates if c.clip_id not in excluded_clip_ids]
+        candidates = [
+            c for c in raw_candidates
+            if c.clip_id not in excluded_clip_ids
+            and c.video_path
+            and os.path.exists(c.video_path)
+        ]
+        missing = len(raw_candidates) - len(excluded_clip_ids) - len(candidates)
+        if missing:
+            logger.warning(
+                f"[Scene {req.scene_id}] 영상 파일 없는 클립 {missing}개 제외 "
+                f"(video_path 없거나 파일 미존재)"
+            )
         logger.info(
             f"[Scene {req.scene_id}] 검색 결과: {len(raw_candidates)}개 → "
             f"중복 제거 후 {len(candidates)}개 "

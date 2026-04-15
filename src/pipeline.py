@@ -119,7 +119,7 @@ class VideoRAGPipeline:
             # 인덱싱 시점의 절대경로가 현재 런타임에서 유효하지 않을 수 있음
             # → 저장된 경로가 없으면 index_dir 기준으로 video_dir를 추정해서 fallback
             _video_dir_candidate = os.path.join(
-                os.path.dirname(os.path.dirname(self.index_dir)),
+                os.path.dirname(self.index_dir),
                 "data", "msrvtt", "videos"
             )
             _broken = 0

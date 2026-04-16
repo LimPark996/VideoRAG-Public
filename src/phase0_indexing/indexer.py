@@ -87,6 +87,7 @@ class VideoIndexer:
         video_dir: str,
         metadata_csv: Optional[str] = None,
         max_clips: Optional[int] = None,
+        use_shot_detector: bool = False,
     ) -> IndexBuildResult:
         """전체 인덱싱 파이프라인 실행
 
@@ -101,6 +102,9 @@ class VideoIndexer:
             video_dir: 영상 파일 디렉토리 (MSR-VTT 샘플)
             metadata_csv: MSR-VTT 메타데이터 CSV 경로 (caption/sentence 열 포함)
             max_clips: 최대 클립 수 제한 (테스트용)
+            use_shot_detector: True이면 ShotDetector로 scene 단위 클립 생성 후
+                               metadata_csv 캡션을 video_id 기준으로 매핑.
+                               False(기본)이면 metadata_csv 1행 = 1클립 (레거시).
 
         Returns:
             IndexBuildResult
@@ -110,7 +114,22 @@ class VideoIndexer:
         os.makedirs(self.keyframe_dir, exist_ok=True)
 
         # ── Step 1: Shot 탐지 → 클립 생성 ──────────────────────────────
-        if metadata_csv and os.path.exists(metadata_csv):
+        if use_shot_detector:
+            print(f'\n🎬 [Step 1] ShotDetector로 scene 단위 클립 생성')
+            clips = self._build_clips_from_videos(video_dir)
+            # CSV 캡션을 video_id 기준으로 매핑
+            if metadata_csv and os.path.exists(metadata_csv):
+                print(f'   📄 캡션 매핑: {metadata_csv}')
+                _df = pd.read_csv(metadata_csv)
+                _vid_to_caption = dict(
+                    zip(_df['video_id'].astype(str),
+                        _df.get('caption', _df.get('sentence', '')).fillna(''))
+                )
+                for clip in clips:
+                    clip.caption = _vid_to_caption.get(clip.video_id, '')
+                matched = sum(1 for c in clips if c.caption)
+                print(f'   캡션 매핑 완료: {matched}/{len(clips)}개 클립')
+        elif metadata_csv and os.path.exists(metadata_csv):
             # 레거시: CSV 기반 (하위 호환)
             print(f'\n📄 [Step 1] metadata_csv 발견 → CSV에서 클립 메타데이터 로드 (레거시)')
             print(f'   경로: {metadata_csv}')

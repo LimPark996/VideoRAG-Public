@@ -231,7 +231,7 @@ class StoryboardMapper:
             search_fn: 검색 콜백. (query, top_k) -> List[ClipResult]
                        VideoRAG 파이프라인의 Phase 1-3 검색 결과를 반환해야 함
             inverse_engine: 역방향 프롬프트 엔진 (None이면 변환 불가 → 분기에서 제외)
-                            Runway 연동 시 generate_video()로 GENERATE 분기도 처리
+                            Runway v2v API 연동 시 TRANSFORM 분기에서 사용
             top_k: 장면별 검색 후보 수
             transform_output_dir: 변환된 영상 저장 디렉토리
             generate_output_dir: 생성된 영상 저장 디렉토리
@@ -923,7 +923,7 @@ class StoryboardMapper:
 
         # ── 분기 판정 ──
         if not best_clip:
-            branch = BranchDecision.GENERATE
+            branch = BranchDecision.TRANSFORM
             attr_match = 0.0
         else:
             branch, attr_match = self._decide_branch(best_clip, req, frame=_frame)
@@ -969,18 +969,13 @@ class StoryboardMapper:
                 best_clip, req, current_state_dict,
                 frame=_frame, current_attrs=_current_attrs,
             )
-        elif branch == BranchDecision.GENERATE:
-            auto_prompt = self._build_generation_prompt_dynamic(req)
-            if not auto_prompt:
-                auto_prompt = self._build_generation_prompt(req)
         else:  # USE_AS_IS
             auto_prompt = ""
 
         # ── 사용 가능한 백엔드 ──
-        available = []
+        available = ["tokenflow"]  # 항상 가능
         if self.inverse_engine.runway_api_key:
-            available.append("runway")
-        available.append("opencv")  # 항상 가능
+            available.insert(0, "runway")
         available.append("original")  # 원본 그대로 사용
 
         return PDReviewRequest(
@@ -1030,6 +1025,7 @@ class StoryboardMapper:
             return prompt
         except Exception as e:
             logger.warning(f"TRANSFORM 프롬프트 생성 실패: {e}")
+            return req.description  # 폴백: 장면 설명을 그대로 프롬프트로 사용
 
     def execute_scene(
         self,
@@ -1114,53 +1110,13 @@ class StoryboardMapper:
                 )
 
         else:
-            # ── GENERATE: 신규 영상 생성 ──
-            os.makedirs(self.generate_output_dir, exist_ok=True)
-            output_path = os.path.join(
-                self.generate_output_dir,
-                f"scene{req.scene_id}_v{attempt}.mp4"
+            # USE_AS_IS: execute_scene은 TRANSFORM에서만 호출되므로 여기는 도달하지 않음
+            return PDExecutionResult(
+                success=False,
+                output_path=None,
+                error="execute_scene은 TRANSFORM 분기에서만 호출 가능합니다.",
+                **result_base,
             )
-
-            try:
-                api_result = self.inverse_engine.generate_video(
-                    prompt=prompt,
-                    duration_sec=req.duration_sec,
-                    output_path=output_path,
-                    backend=backend,
-                )
-
-                # 생성 영상 키프레임 추출
-                after_keyframe = None
-                if api_result.get("success"):
-                    try:
-                        preview_dir = "output/preview"
-                        os.makedirs(preview_dir, exist_ok=True)
-                        after_keyframe = os.path.join(
-                            preview_dir,
-                            f"scene{req.scene_id}_gen_v{attempt}.jpg"
-                        )
-                        cap = cv2.VideoCapture(output_path)
-                        ret, frame = cap.read()
-                        cap.release()
-                        if ret:
-                            cv2.imwrite(after_keyframe, frame)
-                    except Exception:
-                        pass
-
-                return PDExecutionResult(
-                    success=api_result.get("success", False),
-                    output_path=api_result.get("output_path"),
-                    after_keyframe_path=after_keyframe,
-                    error=api_result.get("error"),
-                    **result_base,
-                )
-            except Exception as e:
-                return PDExecutionResult(
-                    success=False,
-                    output_path=None,
-                    error=str(e),
-                    **result_base,
-                )
 
     def accept_scene(
         self,

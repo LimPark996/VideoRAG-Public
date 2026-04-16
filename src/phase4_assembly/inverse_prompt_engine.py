@@ -26,6 +26,7 @@ PDF 설계:
 import os
 import json
 import logging
+import subprocess
 import time
 from typing import Dict, Optional, Tuple, Any
 from dataclasses import dataclass, field
@@ -696,7 +697,7 @@ class InversePromptEngine:
             video_path: 원본 영상 경로
             prompt: 변환 프롬프트
             output_path: 출력 영상 경로
-            backend: "runway", "opencv" (None이면 default_backend)
+            backend: "runway", "tokenflow", "opencv" (None이면 default_backend)
 
         Returns:
             {"output_path": str, "backend": str, "quality_score": float, "success": bool}
@@ -705,8 +706,54 @@ class InversePromptEngine:
 
         if backend == "runway":
             return self._apply_runway(video_path, prompt, output_path)
+        elif backend == "tokenflow":
+            return self._apply_tokenflow(video_path, prompt, output_path)
         else:
             return self._apply_opencv_fallback(video_path, prompt, output_path)
+
+    def _apply_tokenflow(
+        self, video_path: str, prompt: str, output_path: str
+    ) -> Dict[str, Any]:
+        """TokenFlow 기반 video-to-video 변환
+
+        extract_fps=8, keyframe_freq=10, n_timesteps=50, batch_size=8 고정.
+        5초 클립 기준 약 30~60초 소요 (T4).
+        """
+        try:
+            from .tokenflow_wrapper import TokenFlowEditor
+
+            logger.info(f"[TokenFlow] 변환 시작: {video_path}")
+            logger.info(f"[TokenFlow] 프롬프트: {prompt[:120]}")
+
+            editor = TokenFlowEditor()
+            result_path = editor.edit(
+                video_path=video_path,
+                prompt=prompt,
+                output_path=output_path,
+            )
+
+            success = result_path == output_path and os.path.exists(output_path)
+            if success:
+                logger.info(f"[TokenFlow] 변환 완료: {output_path}")
+                self._backup_to_drive(output_path, "transformed")
+            else:
+                logger.warning("[TokenFlow] 실패 — 원본 반환")
+
+            return {
+                "output_path": result_path,
+                "backend": "tokenflow",
+                "quality_score": 0.75 if success else 0.0,
+                "success": success,
+            }
+        except Exception as e:
+            logger.error(f"[TokenFlow] 예외: {e}")
+            return {
+                "output_path": video_path,
+                "backend": "tokenflow_failed",
+                "quality_score": 0.0,
+                "success": False,
+                "error": str(e),
+            }
 
     def _get_runway_client(self):
         """Runway SDK 클라이언트 지연 초기화"""
@@ -1043,23 +1090,20 @@ class InversePromptEngine:
         duration_sec: float = 5.0,
         output_path: Optional[str] = None,
         backend: Optional[str] = None,
-        prev_frame_path: Optional[str] = None,
     ) -> Dict[str, Any]:
         """프롬프트로부터 신규 영상 생성 (GENERATE 분기)
 
         StoryboardMapper의 GENERATE 판정 시 호출되어
-        아카이브에 없는 영상을 Runway로 새로 생성한다.
+        아카이브에 없는 영상을 Runway video-to-video로 새로 생성한다.
 
-        직전 클립의 마지막 프레임이 전달되면 API에 참조로 넘겨
-        시각적 연속성을 보장한다:
-          - Runway: prev_frame_path → promptImage (직전 프레임에서 시작하는 영상 생성)
+        참고: TokenFlow는 기존 영상을 입력으로 받는 video-to-video 모델이므로
+        신규 생성을 지원하지 않는다. 기존 클립 변환은 apply_transform() 사용.
 
         Args:
             prompt: 영상 생성 프롬프트 (영어)
             duration_sec: 생성할 영상 길이 (초)
             output_path: 출력 영상 경로 (None이면 자동 생성)
-            backend: "runway" 또는 "opencv" (None이면 default_backend)
-            prev_frame_path: 직전 클립 마지막 프레임 이미지 경로 (Runway용)
+            backend: "runway" (None이면 default_backend)
 
         Returns:
             {"success": bool, "output_path": str, "backend": str, ...}
@@ -1069,29 +1113,34 @@ class InversePromptEngine:
             output_path = os.path.join("output/generated", f"gen_{int(time.time())}.mp4")
         os.makedirs(os.path.dirname(output_path), exist_ok=True)
 
-        if backend == "runway":
-            return self._generate_runway(prompt, duration_sec, output_path, prev_frame_path)
-        else:
-            logger.warning(f"generate_video: '{backend}' 백엔드로는 신규 생성 불가")
+        if backend == "tokenflow":
+            logger.warning(
+                "generate_video: TokenFlow는 신규 생성 불가 (video-to-video 전용). "
+                "기존 클립 변환은 apply_transform()을 사용하세요."
+            )
             return {
                 "success": False,
                 "output_path": None,
-                "backend": backend,
-                "error": f"'{backend}' 백엔드는 신규 영상 생성을 지원하지 않습니다. 'runway'를 사용하세요.",
+                "backend": "tokenflow",
+                "error": "TokenFlow는 신규 영상 생성 불가 — 기존 클립 변환은 apply_transform() 사용",
             }
+
+        if backend == "runway":
+            return self._generate_runway(prompt, duration_sec, output_path)
+
+        logger.warning(f"generate_video: '{backend}' 백엔드로는 신규 생성 불가")
+        return {
+            "success": False,
+            "output_path": None,
+            "backend": backend,
+            "error": f"'{backend}' 백엔드는 신규 영상 생성을 지원하지 않습니다. 'runway'를 사용하세요.",
+        }
 
     def _generate_runway(
         self, prompt: str, duration_sec: float, output_path: str,
-        prev_frame_path: Optional[str] = None,
     ) -> Dict[str, Any]:
-        """Runway SDK로 신규 영상 생성
-
-        prev_frame_path가 있으면 prompt_image로 전달하여
-        직전 프레임에서 자연스럽게 이어지는 영상을 생성한다.
-        없으면 prompt_image를 생략하여 text-to-video로 동작한다.
-        """
+        """Runway SDK로 신규 영상 생성 (video-to-video text-to-video 모드)"""
         try:
-            import base64
             import urllib.request
 
             if not self.runway_api_key:
@@ -1101,10 +1150,10 @@ class InversePromptEngine:
             dur = min(int(duration_sec), 10)
 
             logger.info(
-                f"[Runway-Gen 1/4] 신규 생성 시작 "
+                f"[Runway-Gen 1/3] 신규 생성 시작 "
                 f"(model={self.runway_model}, duration={dur}s)"
             )
-            logger.info(f"[Runway-Gen 1/4] 프롬프트: {prompt[:120]}")
+            logger.info(f"[Runway-Gen 1/3] 프롬프트: {prompt[:120]}")
 
             kwargs = {
                 "model": self.runway_model,
@@ -1113,34 +1162,24 @@ class InversePromptEngine:
                 "duration": dur,
             }
 
-            # 직전 프레임이 있으면 image-to-video, 없으면 text-to-video
-            mode = "text-to-video"
-            if prev_frame_path and os.path.exists(prev_frame_path):
-                frame = cv2.imread(prev_frame_path)
-                _, buffer = cv2.imencode('.jpg', frame, [cv2.IMWRITE_JPEG_QUALITY, 95])
-                image_b64 = base64.b64encode(buffer).decode()
-                kwargs["prompt_image"] = f"data:image/jpeg;base64,{image_b64}"
-                mode = "image-to-video"
-                logger.info(f"[Runway-Gen 1/4] 직전 프레임 참조 첨부 ({mode})")
-
-            logger.info(f"[Runway-Gen 2/4] API 요청 전송 ({mode})...")
+            logger.info(f"[Runway-Gen 2/3] API 요청 전송...")
             t0 = time.time()
             task = client.image_to_video.create(**kwargs)
             task_id = task.id
-            logger.info(f"[Runway-Gen 2/4] 태스크 생성됨: task_id={task_id}")
+            logger.info(f"[Runway-Gen 2/3] 태스크 생성됨: task_id={task_id}")
 
-            logger.info(f"[Runway-Gen 3/4] 영상 생성 대기 중...")
+            logger.info(f"[Runway-Gen 2/3] 영상 생성 대기 중...")
             task = task.wait_for_task_output()
             elapsed = time.time() - t0
-            logger.info(f"[Runway-Gen 3/4] 생성 완료! (소요: {elapsed:.0f}초)")
+            logger.info(f"[Runway-Gen 2/3] 생성 완료! (소요: {elapsed:.0f}초)")
 
             download_url = task.output[0]
-            logger.info(f"[Runway-Gen 4/4] 다운로드: {download_url[:80]}...")
+            logger.info(f"[Runway-Gen 3/3] 다운로드: {download_url[:80]}...")
             os.makedirs(os.path.dirname(output_path) or ".", exist_ok=True)
             urllib.request.urlretrieve(download_url, output_path)
 
             file_size = os.path.getsize(output_path) / 1024
-            logger.info(f"[Runway-Gen 4/4] 저장 완료: {output_path} ({file_size:.0f}KB)")
+            logger.info(f"[Runway-Gen 3/3] 저장 완료: {output_path} ({file_size:.0f}KB)")
 
             # Drive 백업
             self._backup_to_drive(output_path, "generated")

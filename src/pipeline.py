@@ -117,8 +117,8 @@ class VideoRAGPipeline:
 
             # video_path 경로 검증 및 재매핑
             # 인덱싱 시점의 절대경로가 현재 런타임에서 유효하지 않을 수 있음
-            # → 저장된 경로가 없으면 index_dir 기준으로 video_dir를 추정해서 fallback
-            _video_dir_candidate = os.path.join(
+            # → config["video_dir"] 우선, 없으면 index_dir 기준으로 추정
+            _video_dir_candidate = self.config.get("video_dir") or os.path.join(
                 os.path.dirname(self.index_dir),
                 "data", "msrvtt", "videos"
             )
@@ -126,7 +126,10 @@ class VideoRAGPipeline:
             _missing = 0
             for meta in self.clip_metadata.values():
                 if not os.path.exists(meta.video_path):
+                    # clip_id 기반 경로 먼저 시도, 안 되면 video_id 기반으로 재시도
                     fallback = os.path.join(_video_dir_candidate, f"{meta.clip_id}.mp4")
+                    if not os.path.exists(fallback):
+                        fallback = os.path.join(_video_dir_candidate, f"{meta.video_id}.mp4")
                     if os.path.exists(fallback):
                         meta.video_path = fallback
                         _broken += 1

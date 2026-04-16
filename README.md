@@ -4,7 +4,7 @@
 
 핵심은 **검색(Retrieval)과 생성(Generation)의 경계를 PD가 직접 제어한다**는 것이다. 기존 시스템은 검색만 하거나(Google), 생성만 하거나(Runway/Sora), 출처만 추적하는데(Adobe), VideoRAG는 이 세 가지를 하나의 워크플로로 통합한다. PD는 각 장면마다 아카이브 클립을 그대로 쓸지, AI로 변환할지, 새로 생성할지를 직접 결정하고, 프롬프트를 수정하고, 구간을 크롭하고, 최종 합성까지 하나의 인터페이스에서 처리한다.
 
-Google Colab T4에서 한달간 1인 개발한 프로토타입이다.
+Google Colab T4에서 1인 개발한 프로토타입이다.
 
 ## 02_demo.ipynb — PD 워크스테이션
 
@@ -17,23 +17,27 @@ PD가 대본(JSON)을 넣으면 GPT-4o-mini가 장면별 Scene Graph를 생성�
 | 분기 | 조건 | 처리 |
 |---|---|---|
 | **USE_AS_IS** | 아카이브 클립이 요구 속성과 일치 | 그대로 사용 |
-| **TRANSFORM** | 클립 내용은 맞지만 시간대/계절/분위기가 다름 | 역프롬프트 생성 → Runway Gen-4 Turbo로 영상 변환 |
+| **TRANSFORM** | 클립 내용은 맞지만 시간대/계절/분위기가 다름 | 역프롬프트 생성 → TokenFlow 또는 Runway Gen-4 Turbo로 영상 변환 |
 | **GENERATE** | 적합한 클립이 아카이브에 없음 | Runway로 텍스트→영상 생성 |
 
 **PD가 매 장면에서 하는 일:**
 1. 상위 5개 후보 클립을 영상으로 미리보기
 2. 후보 클립 한개 선정
-3. TRANSFORM이면 — 생성된 역프롬프트를 확인/직접 수정, 원하는 구간을 슬라이더로 크롭, 백엔드 선택(runway/opencv/original)
+3. TRANSFORM이면 — 생성된 역프롬프트를 확인/직접 수정, 원하는 구간을 슬라이더로 크롭, 백엔드 선택(tokenflow / runway / opencv)
 4. 승인 / 재시도 / 건너뛰기 / 직접 파일 업로드 중 선택
 5. 모든 장면 완료 후 장면 순서 재배치
 6. 최종 합성 → DINOv2 전환 효과 + 색보정 + C2PA 서명된 영상 출력
 
-**역프롬프트(Inverse Prompt)란?** 
-"저녁→밤으로 바꿔" 같은 추상적 지시가 아니라, 장면 의도(Scene Intent)를 포함한 구체적 시네마틱 프롬프트를 자동 생성하는 것이다. 예를 들어 "네온사인이 빛나는 도시 밤" 장면인데 검색된 클립이 저녁이면, 단순히 "어둡게 해라"가 아니라 "A sprawling cityscape at night, neon signs blazing in electric blue and magenta, deep indigo sky, volumetric haze catching the neon glow" 같은 프롬프트를 GPT-4o-mini가 생성하고, 이걸 Runway에 넘긴다.
+**역프롬프트(Inverse Prompt)란?**
+"저녁→밤으로 바꿔" 같은 추상적 지시가 아니라, 장면 의도(Scene Intent)를 포함한 구체적 시네마틱 프롬프트를 자동 생성하는 것이다. 예를 들어 "네온사인이 빛나는 도시 밤" 장면인데 검색된 클립이 저녁이면, 단순히 "어둡게 해라"가 아니라 "A sprawling cityscape at night, neon signs blazing in electric blue and magenta, deep indigo sky, volumetric haze catching the neon glow" 같은 프롬프트를 GPT-4o-mini가 생성하고, 이걸 TokenFlow나 Runway에 넘긴다.
 
-### Tab 2: PD 큐레이션 -> **수정 필요**
+### Tab 2: PD 큐레이션
 
 Scene Graph 없이 텍스트 쿼리로 바로 검색 → PD가 클립을 직접 선택/제외/순서 변경 → 합성. 빠르게 B-roll을 뽑을 때 사용한다.
+
+**Section C — 클립 변환:** 선택한 클립에 프롬프트를 입력하면 TokenFlow(로컬 SD 기반) 또는 Runway(API 기반)로 스타일 변환한다. 변환 결과를 승인하면 변환 클립이 클립 목록에 추가되어 합성에 사용된다.
+
+**Section D — 새 클립 생성:** 프롬프트만으로 Runway가 신규 영상을 생성한다.
 
 ### 공통 기능
 
@@ -70,6 +74,7 @@ Scene Graph 없이 텍스트 쿼리로 바로 검색 → PD가 클립을 직접 
 │ [BM25] ←→ [Dense(InternVideo2)]      │    │
 │      └──→ [WRRF 융합]               │    │
 │              └──→ [ColBERT 리랭킹]    │    │
+│                   └──→ [ITM 재순위]  │    │
 └──────────────────────────────────────┘    │
     │ 상위 K개 후보 클립                      │
     ▼                                       ▼
@@ -79,8 +84,8 @@ Scene Graph 없이 텍스트 쿼리로 바로 검색 → PD가 클립을 직접 
     │
     ├── TRANSFORM ──→ [InversePromptEngine]
     │                   역프롬프트 생성 (GPT-4o-mini)
-    │                     └──→ Runway Gen-4 Turbo
-    │                            (image-to-video 변환)
+    │                     ├──→ TokenFlow (로컬, SD 기반 video-to-video)
+    │                     └──→ Runway Gen-4 Turbo (API 기반 video-to-video)
     │
     └── GENERATE ───→ Runway Gen-4 Turbo
                        (text-to-video 생성)
@@ -109,10 +114,12 @@ Scene Graph 없이 텍스트 쿼리로 바로 검색 → PD가 클립을 직접 
 | 희소 검색 | BM25 + spaCy 레마타이저 | rank_bm25 |
 | 밀집 인덱스 | FAISS IVFFlat (코사인/IP) | Meta AI Research |
 | 검색 융합 | WRRF (w_visual=0.6, w_text=0.4, k=60) | Cormack 2009 기반 자체 설계 |
-| 리랭킹 | ColBERT v2 + PLAID 가속 | Stanford, NAACL 2022 |
+| 리랭킹 | ColBERT v2 (MaxSim 브루트포스) | Stanford, NAACL 2022 |
+| 최종 재순위 | ITM (Image-Text Matching, InternVideo2 cross-attention) | 자체 통합 |
 | 대본 파싱 | GPT-4o-mini → Scene Graph JSON | OpenAI |
 | 역프롬프트 | InversePromptEngine (속성→시네마틱 프롬프트) | 자체 설계 |
-| 영상 변환/생성 | Runway Gen-4 Turbo | Runway API |
+| 영상 변환 (로컬) | TokenFlow (SD + DDIM inversion, keyframe subsampling 8fps/10f) | Geyer et al. 2023 |
+| 영상 변환/생성 (API) | Runway Gen-4 Turbo (video-to-video / text-to-video) | Runway API |
 | 전환 효과 | DINOv2 시각 유사도 (CUT/CROSSFADE/MORPH) | Meta AI Research |
 | 색보정 | DreamColour 3D LUT | CHAITron/DreamColour |
 | 시간 일관성 | TC-Score (Optical Flow 기반) | 자체 설계 |
@@ -144,7 +151,7 @@ notebooks/03_evaluation.ipynb
 - Google Colab (T4 GPU)
 - HuggingFace 토큰 (`HF_TOKEN`) — InternVideo2 가중치
 - OpenAI API 키 — GPT-4o-mini (캡션, Scene Graph, 역프롬프트)
-- (선택) Runway API 키 — TRANSFORM/GENERATE 경로
+- (선택) Runway API 키 — TRANSFORM/GENERATE 경로 (없으면 TokenFlow로 로컬 변환)
 - (선택) Papago API — 한국어 쿼리 번역
 - MSR-VTT 영상 — Google Drive에 MSR-VTT.ZIP (`data/msrvtt/README.md` 참고)
 
@@ -168,10 +175,12 @@ videorag-public/
       dense_retriever.py         # FAISS 밀집 검색
       hybrid_fusion.py           # WRRF 융합
     phase3_reranking/
-      reranker.py                # ColBERT v2 + PLAID
+      reranker.py                # ColBERT v2 MaxSim
+      itm_scorer.py              # ITM 최종 재순위
     phase4_assembly/
       storyboard_mapper.py       # Scene Graph → 3경로 분기 판정
-      inverse_prompt_engine.py   # 역프롬프트 생성 + Runway 호출
+      inverse_prompt_engine.py   # 역프롬프트 생성 + TokenFlow/Runway 호출
+      tokenflow_wrapper.py       # TokenFlow video-to-video 래퍼
       assembler.py               # 영상 어셈블리
       visual_scorer.py           # DINOv2 시각 유사도
       transition_selector.py     # CUT/CROSSFADE/MORPH 자동 선택
@@ -184,7 +193,7 @@ videorag-public/
       faiss_flat_eval.py         # Exact-search 평가 인덱스
   notebooks/
     00_setup.ipynb               # 환경 설정
-    01_indexing.ipynb             # 오프라인 인덱싱 (7,010개)
+    01_indexing.ipynb            # 오프라인 인덱싱 (7,010개)
     01b_caption_remaining.ipynb  # 나머지 6,010개 캡션 생성
     02_demo.ipynb                # ★ PD 워크스테이션
     03_evaluation.ipynb          # ★ MSR-VTT 1k-A 벤치마크
@@ -198,9 +207,11 @@ videorag-public/
 
 **왜 3경로 분기?** 아카이브만으로는 모든 장면을 충족할 수 없다. 클립이 딱 맞으면 그대로 쓰고(USE_AS_IS), 내용은 맞는데 밤/낮이 다르면 AI로 변환하고(TRANSFORM), 아예 없으면 생성한다(GENERATE). PD가 매 판정을 검토하고 오버라이드할 수 있어서, AI의 자동화와 사람의 편집 판단이 공존한다.
 
+**왜 TokenFlow + Runway 이중 변환 백엔드?** Runway는 API 비용이 발생하고 인터넷이 필요하다. TokenFlow는 Stable Diffusion 기반으로 Colab 로컬에서 실행되어 비용 없이 변환 가능하다. keyframe subsampling(8fps 추출, 10프레임마다 keyframe 1개)으로 5초 클립 기준 T4에서 약 30~60초에 처리한다. 두 백엔드를 같은 인터페이스에서 선택할 수 있어 비용·품질 트레이드오프를 PD가 직접 결정한다.
+
 **왜 역프롬프트?** Runway에 "저녁을 밤으로 바꿔"라고 넣으면 그냥 어두워지기만 한다. InversePromptEngine이 장면 의도를 포함한 시네마틱 프롬프트를 생성해서 변환 품질을 높인다.
 
-**왜 하이브리드 검색?** BM25는 고유명사·숫자 매칭, Dense(InternVideo2)는 의미 유사도. WRRF로 두 장점을 결합하고, ColBERT로 상위 후보를 정밀 리랭킹한다.
+**왜 하이브리드 검색?** BM25는 고유명사·숫자 매칭, Dense(InternVideo2)는 의미 유사도. WRRF로 두 장점을 결합하고, ColBERT로 상위 후보를 정밀 리랭킹한 뒤 ITM cross-attention으로 최종 재순위한다.
 
 **왜 C2PA?** AI가 변환/생성한 클립이 섞인 영상의 출처를 암호학적으로 증명한다. 어떤 클립이 아카이브 원본이고, 어떤 클립이 AI가 만든 것인지 추적 가능.
 
@@ -214,13 +225,13 @@ videorag-public/
 
 ---
 
-# VideoRAG — AI-Powered Video Retrieval·Transform·Synthesis PD Workstation
+# VideoRAG — AI-Powered Video Retrieval · Transform · Synthesis PD Workstation
 
 A system where a broadcast PD inputs a screenplay or natural-language query, and the system searches the video archive for matching scenes, transforms clips whose attributes don't match via AI, generates entirely new footage when nothing suitable exists, and assembles the final edited video — all in one interface.
 
 The core idea: **the PD controls the boundary between retrieval and generation**. Existing systems only search (Google), only generate (Runway/Sora), or only track provenance (Adobe). VideoRAG integrates all three into a single workflow. For each scene, the PD decides whether to use an archive clip as-is, transform it with AI, or generate from scratch — reviewing prompts, cropping segments, and approving results at every step.
 
-Built as a solo prototype in 2 weeks on Google Colab (T4 Free Tier).
+Built as a solo prototype on Google Colab (T4 GPU).
 
 ## 02_demo.ipynb — PD Workstation
 
@@ -233,21 +244,26 @@ The PD inputs a screenplay (JSON). GPT-4o-mini generates a per-scene Scene Graph
 | Path | Condition | Action |
 |---|---|---|
 | **USE_AS_IS** | Archive clip matches required attributes | Use directly |
-| **TRANSFORM** | Content matches but time/season/mood differs | Generate inverse prompt → Runway Gen-4 Turbo video transform |
+| **TRANSFORM** | Content matches but time/season/mood differs | Generate inverse prompt → TokenFlow or Runway Gen-4 Turbo video transform |
 | **GENERATE** | No suitable clip in archive | Runway text-to-video generation |
 
 **What the PD does per scene:**
 1. Preview top 5 candidate clips as video
-2. For TRANSFORM — review/edit the inverse prompt, crop the desired segment with sliders, select backend (runway/opencv/original)
-3. Accept / Retry / Skip / Upload own file
-4. After all scenes — reorder scenes
-5. Final assembly → DINOv2 transitions + color normalization + C2PA-signed output
+2. Select one clip
+3. For TRANSFORM — review/edit the inverse prompt, crop the desired segment with sliders, select backend (tokenflow / runway / opencv)
+4. Accept / Retry / Skip / Upload own file
+5. After all scenes — reorder scenes
+6. Final assembly → DINOv2 transitions + color normalization + C2PA-signed output
 
-**Inverse Prompt:** Not "make it darker" but a concrete cinematic prompt that includes scene intent. For a "neon-lit city night" scene where the retrieved clip is evening, InversePromptEngine generates "A sprawling cityscape at night, neon signs blazing in electric blue and magenta, deep indigo sky, volumetric haze catching the neon glow" — then sends it to Runway.
+**Inverse Prompt:** Not "make it darker" but a concrete cinematic prompt that includes scene intent. For a "neon-lit city night" scene where the retrieved clip is evening, InversePromptEngine generates "A sprawling cityscape at night, neon signs blazing in electric blue and magenta, deep indigo sky, volumetric haze catching the neon glow" — then sends it to TokenFlow or Runway.
 
 ### Tab 2: PD Curation
 
 Text query → search → PD manually selects/excludes/reorders clips → assemble. Fast mode for B-roll without Scene Graph.
+
+**Section C — Clip Transform:** Input a prompt for the selected clip and transform it via TokenFlow (local SD-based) or Runway (API-based). Approved results are added to the clip list for assembly.
+
+**Section D — New Clip Generation:** Runway generates new footage from a text prompt only.
 
 ### Shared Features
 
@@ -284,6 +300,7 @@ Script/Query
 │ [BM25] ←→ [Dense (InternVideo2)]     │    │
 │      └──→ [WRRF Fusion]             │    │
 │              └──→ [ColBERT Rerank]   │    │
+│                   └──→ [ITM Rerank] │    │
 └──────────────────────────────────────┘    │
     │ Top-K candidate clips                  │
     ▼                                       ▼
@@ -293,8 +310,8 @@ Script/Query
     │
     ├── TRANSFORM ──→ [InversePromptEngine]
     │                   Cinematic prompt (GPT-4o-mini)
-    │                     └──→ Runway Gen-4 Turbo
-    │                            (image-to-video transform)
+    │                     ├──→ TokenFlow  (local, SD video-to-video)
+    │                     └──→ Runway Gen-4 Turbo (API video-to-video)
     │
     └── GENERATE ───→ Runway Gen-4 Turbo
                        (text-to-video generation)
@@ -323,10 +340,12 @@ Final Video + TC-Score + C2PA Metadata
 | Sparse Retrieval | BM25 + spaCy lemmatizer | rank_bm25 |
 | Dense Index | FAISS IVFFlat (cosine/IP) | Meta AI Research |
 | Retrieval Fusion | WRRF (w_visual=0.6, w_text=0.4, k=60) | Custom (Cormack 2009) |
-| Reranking | ColBERT v2 + PLAID | Stanford, NAACL 2022 |
+| Reranking | ColBERT v2 MaxSim (brute-force) | Stanford, NAACL 2022 |
+| Final Reranking | ITM (InternVideo2 cross-attention) | Custom integration |
 | Script Parsing | GPT-4o-mini → Scene Graph JSON | OpenAI |
 | Inverse Prompt | InversePromptEngine (attribute→cinematic prompt) | Custom |
-| Video Transform/Gen | Runway Gen-4 Turbo | Runway API |
+| Video Transform (local) | TokenFlow (SD + DDIM inversion, 8fps/keyframe-10) | Geyer et al. 2023 |
+| Video Transform/Gen (API) | Runway Gen-4 Turbo (video-to-video / text-to-video) | Runway API |
 | Transition Effects | DINOv2 visual similarity (CUT/CROSSFADE/MORPH) | Meta AI Research |
 | Color Normalization | DreamColour 3D LUT | CHAITron/DreamColour |
 | Temporal Consistency | TC-Score (Optical Flow) | Custom |
@@ -355,10 +374,10 @@ notebooks/03_evaluation.ipynb
 
 ### Prerequisites
 
-- Google Colab (T4 GPU, free tier sufficient)
+- Google Colab (T4 GPU)
 - HuggingFace token (`HF_TOKEN`) — InternVideo2 weights
 - OpenAI API key — GPT-4o-mini (captions, Scene Graph, inverse prompts)
-- (Optional) Runway API key — for TRANSFORM/GENERATE paths
+- (Optional) Runway API key — for TRANSFORM/GENERATE paths (falls back to TokenFlow locally)
 - (Optional) Papago API — Korean query translation
 - MSR-VTT videos — MSR-VTT.ZIP on Google Drive (see `data/msrvtt/README.md`)
 
@@ -382,10 +401,12 @@ videorag-public/
       dense_retriever.py         # FAISS dense retrieval
       hybrid_fusion.py           # WRRF fusion
     phase3_reranking/
-      reranker.py                # ColBERT v2 + PLAID
+      reranker.py                # ColBERT v2 MaxSim
+      itm_scorer.py              # ITM final reranking
     phase4_assembly/
       storyboard_mapper.py       # Scene Graph → 3-path routing
-      inverse_prompt_engine.py   # Inverse prompt + Runway calls
+      inverse_prompt_engine.py   # Inverse prompt + TokenFlow/Runway calls
+      tokenflow_wrapper.py       # TokenFlow video-to-video wrapper
       assembler.py               # Video assembly
       visual_scorer.py           # DINOv2 visual similarity
       transition_selector.py     # CUT/CROSSFADE/MORPH selection
@@ -398,7 +419,7 @@ videorag-public/
       faiss_flat_eval.py         # Exact-search eval index
   notebooks/
     00_setup.ipynb               # Environment setup
-    01_indexing.ipynb             # Offline indexing (7,010 clips)
+    01_indexing.ipynb            # Offline indexing (7,010 clips)
     01b_caption_remaining.ipynb  # Caption generation for remaining 6,010
     02_demo.ipynb                # ★ PD Workstation
     03_evaluation.ipynb          # ★ MSR-VTT 1k-A benchmark
@@ -412,9 +433,11 @@ videorag-public/
 
 **Why 3-path routing?** An archive alone can't cover every scene. If a clip matches, use it (USE_AS_IS). If the content matches but it's daytime instead of night, transform it (TRANSFORM). If nothing exists, generate it (GENERATE). The PD reviews every decision, so AI automation and human editorial judgment coexist.
 
+**Why TokenFlow + Runway dual transform backends?** Runway incurs API costs and requires internet. TokenFlow runs locally on Colab using Stable Diffusion — zero cost. Keyframe subsampling (8fps extraction, 1 keyframe per 10 frames) makes it practical: a 5-second clip processes in ~30–60s on T4. Both backends share the same Gradio interface, letting the PD decide the cost/quality tradeoff per clip.
+
 **Why Inverse Prompt?** Telling Runway "change evening to night" just makes things darker. InversePromptEngine generates cinematic prompts with scene intent, producing far better transforms.
 
-**Why Hybrid Retrieval?** BM25 catches proper nouns and numbers; Dense (InternVideo2) captures semantic similarity. WRRF fuses both, ColBERT reranks the top candidates with token-level precision.
+**Why Hybrid Retrieval?** BM25 catches proper nouns and numbers; Dense (InternVideo2) captures semantic similarity. WRRF fuses both, ColBERT reranks the top candidates with token-level precision, and ITM cross-attention performs final reranking using full visual-text alignment.
 
 **Why C2PA?** When the final video mixes archive originals with AI-transformed and AI-generated clips, provenance tracking proves cryptographically which clip is which.
 

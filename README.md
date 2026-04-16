@@ -2,7 +2,7 @@
 
 방송사 PD가 대본(큐시트)이나 자연어 쿼리를 입력하면, 영상 아카이브에서 장면을 검색하고, 속성이 맞지 않으면 AI로 변환하고, 아예 적합한 영상이 없으면 새로 생성해서, 최종 편집 영상까지 자동으로 만들어주는 시스템이다.
 
-핵심은 **검색(Retrieval)과 생성(Generation)의 경계를 PD가 직접 제어한다**는 것이다. 기존 시스템은 검색만 하거나(Google), 생성만 하거나(Runway/Sora), 출처만 추적하는데(Adobe), VideoRAG는 이 세 가지를 하나의 워크플로로 통합한다. PD는 각 장면마다 아카이브 클립을 그대로 쓸지, AI로 변환할지, 새로 생성할지를 직접 결정하고, 프롬프트를 수정하고, 구간을 크롭하고, 최종 합성까지 하나의 인터페이스에서 처리한다.
+핵심은 **검색(Retrieval)과 생성(Generation)의 경계를 PD가 직접 제어한다**는 것이다. 기존 시스템은 검색만 하거나(Google), 생성만 하거나(Runway), 출처만 추적하는데, VideoRAG는 이 세 가지를 하나의 워크플로로 통합한다. PD는 각 장면마다 아카이브 클립을 그대로 쓸지, AI로 변환할지, 새로 생성할지를 직접 결정하고, 프롬프트를 수정하고, 구간을 크롭하고, 최종 합성까지 하나의 인터페이스에서 처리한다.
 
 Google Colab T4에서 1인 개발한 프로토타입이다.
 
@@ -12,13 +12,12 @@ Google Colab T4에서 1인 개발한 프로토타입이다.
 
 ### Tab 1: Scene Graph 워크플로
 
-PD가 대본(JSON)을 넣으면 GPT-4o-mini가 장면별 Scene Graph를 생성한다. 각 장면의 description(영어, 검색용)과 attributes(시간대, 계절, 분위기, 장소)가 추출되고, 시스템이 아카이브를 검색한 뒤 **장면마다 자동으로 3경로 분기 판정**을 내린다:
+PD가 대본(JSON)을 넣으면 GPT-4o-mini가 장면별 Scene Graph를 생성한다. 각 장면의 description(영어, 검색용)과 attributes(시간대, 계절, 분위기, 장소)가 추출되고, 시스템이 아카이브를 검색한 뒤 **장면마다 2경로 분기 판정을 자동으로 제안**한다. PD는 제안된 분기를 확인하고 직접 오버라이드할 수 있다:
 
-| 분기 | 조건 | 처리 |
+| 분기 | 자동 판정 기준 | 처리 |
 |---|---|---|
-| **USE_AS_IS** | 아카이브 클립이 요구 속성과 일치 | 그대로 사용 |
-| **TRANSFORM** | 클립 내용은 맞지만 시간대/계절/분위기가 다름 | 역프롬프트 생성 → TokenFlow 또는 Runway Gen-4 Turbo로 영상 변환 |
-| **GENERATE** | 적합한 클립이 아카이브에 없음 | Runway로 텍스트→영상 생성 |
+| **USE_AS_IS** | 검색 점수 ≥ 임계값 + 속성 일치도 ≥ 임계값 | 그대로 사용 |
+| **TRANSFORM** | 속성 불일치 또는 검색 점수 낮음 | 역프롬프트 생성 → TokenFlow (속성 변환) 또는 Runway gen4_aleph v2v (창의적 변환) |
 
 **PD가 매 장면에서 하는 일:**
 1. 상위 5개 후보 클립을 영상으로 미리보기
@@ -82,13 +81,10 @@ Scene Graph 없이 텍스트 쿼리로 바로 검색 → PD가 클립을 직접 
     │
     ├── USE_AS_IS ──→ 클립 그대로 사용
     │
-    ├── TRANSFORM ──→ [InversePromptEngine]
-    │                   역프롬프트 생성 (GPT-4o-mini)
-    │                     ├──→ TokenFlow (로컬, SD 기반 video-to-video)
-    │                     └──→ Runway Gen-4 Turbo (API 기반 video-to-video)
-    │
-    └── GENERATE ───→ Runway Gen-4 Turbo
-                       (text-to-video 생성)
+    └── TRANSFORM ──→ [InversePromptEngine]
+                        역프롬프트 생성 (GPT-4o-mini)
+                          ├──→ TokenFlow (로컬, SD 기반 video-to-video, 속성 변환)
+                          └──→ Runway gen4_aleph (API 기반 video-to-video, 창의적 변환)
     │
     ▼
   ★ PD 리뷰 (승인/수정/재시도/건너뛰기/업로드)
@@ -151,7 +147,7 @@ notebooks/03_evaluation.ipynb
 - Google Colab (T4 GPU)
 - HuggingFace 토큰 (`HF_TOKEN`) — InternVideo2 가중치
 - OpenAI API 키 — GPT-4o-mini (캡션, Scene Graph, 역프롬프트)
-- (선택) Runway API 키 — TRANSFORM/GENERATE 경로 (없으면 TokenFlow로 로컬 변환)
+- (선택) Runway API 키 — TRANSFORM 경로의 Runway v2v (없으면 TokenFlow로 로컬 변환)
 - (선택) Papago API — 한국어 쿼리 번역
 - MSR-VTT 영상 — Google Drive에 MSR-VTT.ZIP (`data/msrvtt/README.md` 참고)
 
@@ -178,7 +174,7 @@ videorag-public/
       reranker.py                # ColBERT v2 MaxSim
       itm_scorer.py              # ITM 최종 재순위
     phase4_assembly/
-      storyboard_mapper.py       # Scene Graph → 3경로 분기 판정
+      storyboard_mapper.py       # Scene Graph → 2경로 분기 판정
       inverse_prompt_engine.py   # 역프롬프트 생성 + TokenFlow/Runway 호출
       tokenflow_wrapper.py       # TokenFlow video-to-video 래퍼
       assembler.py               # 영상 어셈블리
@@ -205,7 +201,7 @@ videorag-public/
 
 ## 설계 결정
 
-**왜 3경로 분기?** 아카이브만으로는 모든 장면을 충족할 수 없다. 클립이 딱 맞으면 그대로 쓰고(USE_AS_IS), 내용은 맞는데 밤/낮이 다르면 AI로 변환하고(TRANSFORM), 아예 없으면 생성한다(GENERATE). PD가 매 판정을 검토하고 오버라이드할 수 있어서, AI의 자동화와 사람의 편집 판단이 공존한다.
+**왜 2경로 분기?** 클립이 딱 맞으면 그대로 쓰고(USE_AS_IS), 속성이 다르거나 점수가 낮으면 AI로 변환한다(TRANSFORM). 완전히 새로운 영상을 생성하는 것은 PD가 외부 툴로 직접 하는 것이 더 효율적이다. PD가 매 판정을 검토하고 오버라이드할 수 있어서, AI의 자동화와 사람의 편집 판단이 공존한다.
 
 **왜 TokenFlow + Runway 이중 변환 백엔드?** Runway는 API 비용이 발생하고 인터넷이 필요하다. TokenFlow는 Stable Diffusion 기반으로 Colab 로컬에서 실행되어 비용 없이 변환 가능하다. keyframe subsampling(8fps 추출, 10프레임마다 keyframe 1개)으로 5초 클립 기준 T4에서 약 30~60초에 처리한다. 두 백엔드를 같은 인터페이스에서 선택할 수 있어 비용·품질 트레이드오프를 PD가 직접 결정한다.
 
@@ -227,7 +223,7 @@ videorag-public/
 
 # VideoRAG — AI-Powered Video Retrieval · Transform · Synthesis PD Workstation
 
-A system where a broadcast PD inputs a screenplay or natural-language query, and the system searches the video archive for matching scenes, transforms clips whose attributes don't match via AI, generates entirely new footage when nothing suitable exists, and assembles the final edited video — all in one interface.
+A system where a broadcast PD inputs a screenplay or natural-language query, and the system searches the video archive for matching scenes, transforms clips whose attributes don't match via AI (TokenFlow for attribute changes, Runway gen4_aleph v2v for creative transforms), and assembles the final edited video — all in one interface.
 
 The core idea: **the PD controls the boundary between retrieval and generation**. Existing systems only search (Google), only generate (Runway/Sora), or only track provenance (Adobe). VideoRAG integrates all three into a single workflow. For each scene, the PD decides whether to use an archive clip as-is, transform it with AI, or generate from scratch — reviewing prompts, cropping segments, and approving results at every step.
 
@@ -244,8 +240,7 @@ The PD inputs a screenplay (JSON). GPT-4o-mini generates a per-scene Scene Graph
 | Path | Condition | Action |
 |---|---|---|
 | **USE_AS_IS** | Archive clip matches required attributes | Use directly |
-| **TRANSFORM** | Content matches but time/season/mood differs | Generate inverse prompt → TokenFlow or Runway Gen-4 Turbo video transform |
-| **GENERATE** | No suitable clip in archive | Runway text-to-video generation |
+| **TRANSFORM** | Attribute mismatch or low search score | Generate inverse prompt → TokenFlow (attribute changes) or Runway gen4_aleph v2v (creative transform) |
 
 **What the PD does per scene:**
 1. Preview top 5 candidate clips as video
@@ -263,7 +258,7 @@ Text query → search → PD manually selects/excludes/reorders clips → assemb
 
 **Section C — Clip Transform:** Input a prompt for the selected clip and transform it via TokenFlow (local SD-based) or Runway (API-based). Approved results are added to the clip list for assembly.
 
-**Section D — New Clip Generation:** Runway generates new footage from a text prompt only.
+**Section D — Runway v2v Transform:** Applies a creative prompt to the selected clip via Runway gen4_aleph video-to-video.
 
 ### Shared Features
 
@@ -313,7 +308,7 @@ Script/Query
     │                     ├──→ TokenFlow  (local, SD video-to-video)
     │                     └──→ Runway Gen-4 Turbo (API video-to-video)
     │
-    └── GENERATE ───→ Runway Gen-4 Turbo
+
                        (text-to-video generation)
     │
     ▼
@@ -377,7 +372,7 @@ notebooks/03_evaluation.ipynb
 - Google Colab (T4 GPU)
 - HuggingFace token (`HF_TOKEN`) — InternVideo2 weights
 - OpenAI API key — GPT-4o-mini (captions, Scene Graph, inverse prompts)
-- (Optional) Runway API key — for TRANSFORM/GENERATE paths (falls back to TokenFlow locally)
+- (Optional) Runway API key — for TRANSFORM path Runway v2v (falls back to TokenFlow locally)
 - (Optional) Papago API — Korean query translation
 - MSR-VTT videos — MSR-VTT.ZIP on Google Drive (see `data/msrvtt/README.md`)
 
@@ -431,7 +426,7 @@ videorag-public/
 
 ## Design Decisions
 
-**Why 3-path routing?** An archive alone can't cover every scene. If a clip matches, use it (USE_AS_IS). If the content matches but it's daytime instead of night, transform it (TRANSFORM). If nothing exists, generate it (GENERATE). The PD reviews every decision, so AI automation and human editorial judgment coexist.
+**Why 2-path routing?** If a clip matches, use it (USE_AS_IS). If attributes don't match or the score is low, transform it (TRANSFORM). Generating entirely new footage is better done with dedicated tools outside this system. The PD reviews every decision, so AI automation and human editorial judgment coexist.
 
 **Why TokenFlow + Runway dual transform backends?** Runway incurs API costs and requires internet. TokenFlow runs locally on Colab using Stable Diffusion — zero cost. Keyframe subsampling (8fps extraction, 1 keyframe per 10 frames) makes it practical: a 5-second clip processes in ~30–60s on T4. Both backends share the same Gradio interface, letting the PD decide the cost/quality tradeoff per clip.
 

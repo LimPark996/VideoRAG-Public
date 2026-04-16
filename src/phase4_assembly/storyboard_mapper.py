@@ -9,8 +9,8 @@ PDF 설계:
   1. Scene Graph JSON 파싱: 방송사 PD가 보내는 스토리보드 구조를 파싱
   2. 장면별 검색 쿼리 추출: 각 장면의 텍스트 설명 + 속성 요구사항 추출
   3. 장면별 클립 선택: search_fn 콜백을 통해 아카이브 검색 → 최적 클립 선택
-  4. 3경로 분기 판정: 검색 결과 품질에 따라 그대로 사용 / 속성 변환 / 신규 생성
-  5. PD 인터랙티브 워크플로: TRANSFORM/GENERATE 시 PD가 프롬프트 수정 + 백엔드 선택 + 결과 확인
+  4. 2경로 분기 판정: 검색 결과 품질에 따라 그대로 사용 / 변환 (TokenFlow 또는 Runway v2v)
+  5. PD 인터랙티브 워크플로: TRANSFORM 시 PD가 프롬프트 수정 + 백엔드 선택 + 결과 확인
   6. 타임라인 조립: Scene Graph 순서대로 최종 클립 리스트 반환
 
 동작 흐름:
@@ -67,16 +67,13 @@ logger = logging.getLogger(__name__)
 # ─────────────────────────────────────────────
 
 class BranchDecision(Enum):
-    """3경로 분기 판정 결과
+    """2경로 분기 판정 결과
 
-    PDF 설계: 유사도 기반 3경로 분기
     - USE_AS_IS: 검색 결과가 요구에 충분히 부합 → 그대로 사용
-    - TRANSFORM: 콘텐츠는 맞지만 속성(시간대/계절/분위기)이 다름 → 역방향 프롬프트로 변환
-    - GENERATE:  적합한 클립이 아카이브에 없음 → Runway로 신규 생성
+    - TRANSFORM: 속성이 다르거나 점수가 낮음 → TokenFlow/Runway v2v로 변환
     """
     USE_AS_IS = "use_as_is"
     TRANSFORM = "transform"
-    GENERATE = "generate"
 
 
 @dataclass
@@ -120,9 +117,9 @@ class PDReviewRequest:
     PD는 프롬프트를 수정하고 백엔드를 선택한 뒤 실행을 요청한다.
     """
     scene_id: int
-    branch: BranchDecision                  # TRANSFORM 또는 GENERATE
+    branch: BranchDecision                  # TRANSFORM
     requirement: SceneRequirement           # 원본 요구사항
-    selected_clip: Optional[ClipResult]     # 검색된 클립 (GENERATE면 None)
+    selected_clip: Optional[ClipResult]     # 검색된 클립 (없으면 None)
     auto_prompt: str                        # GPT/규칙 기반 자동 생성 프롬프트
     current_state: Optional[Dict[str, str]] # 현재 클립 속성 (TRANSFORM 시)
     target_state: Dict[str, str]            # 목표 속성
@@ -176,7 +173,6 @@ class StoryboardMapping:
     total_duration_sec: float = 0.0
     clips_used: int = 0
     clips_transformed: int = 0
-    clips_generated: int = 0
 
     @property
     def summary(self) -> Dict[str, Any]:
@@ -187,13 +183,12 @@ class StoryboardMapping:
             "branch_stats": {
                 "use_as_is": sum(1 for s in self.scenes if s.branch == BranchDecision.USE_AS_IS),
                 "transform": sum(1 for s in self.scenes if s.branch == BranchDecision.TRANSFORM),
-                "generate": sum(1 for s in self.scenes if s.branch == BranchDecision.GENERATE),
             }
         }
 
 
 # ─────────────────────────────────────────────
-# 3경로 분기 임계값
+# 2경로 분기 임계값
 # ─────────────────────────────────────────────
 
 # 검색 점수 임계값: 이 이상이면 콘텐츠가 적합한 것으로 판정
@@ -362,7 +357,6 @@ class StoryboardMapper:
             total_duration_sec=sum(r.duration_sec for r in requirements),
             clips_used=sum(1 for s in mapped_scenes if s.branch == BranchDecision.USE_AS_IS),
             clips_transformed=sum(1 for s in mapped_scenes if s.branch == BranchDecision.TRANSFORM),
-            clips_generated=sum(1 for s in mapped_scenes if s.branch == BranchDecision.GENERATE),
         )
 
         logger.info(
@@ -489,14 +483,19 @@ class StoryboardMapper:
         candidates = self.search_fn(req.description, self.top_k)
 
         if not candidates:
-            # 후보가 아예 없음 → 신규 생성
-            return self._handle_generate(req, reason="검색 결과 없음", neighbor_ctx=neighbor_ctx)
+            # 후보가 아예 없음 → TRANSFORM 분기로 표시 (PD가 직접 업로드 필요)
+            return MappedScene(
+                scene_id=req.scene_id,
+                requirement=req,
+                branch=BranchDecision.TRANSFORM,
+                notes="검색 결과 없음 — 직접 업로드 필요",
+            )
 
         # ── 최적 클립 선택 (최고 점수 기준) ──
         best_clip = candidates[0]  # search_fn이 점수순 정렬된 결과 반환 가정
         search_score = best_clip.score
 
-        # ── 3경로 분기 판정 ──
+        # ── 2경로 분기 판정 ──
         branch, attr_match = self._decide_branch(best_clip, req)
 
         mapped = MappedScene(
@@ -522,9 +521,6 @@ class StoryboardMapper:
                 f"prompt='{transform_result.get('prompt', '')[:80]}...'"
             )
 
-        elif branch == BranchDecision.GENERATE:
-            return self._handle_generate(req, reason="검색 점수 미달", neighbor_ctx=neighbor_ctx)
-
         return mapped
 
     # ─────────────────────────────────────────
@@ -535,14 +531,12 @@ class StoryboardMapper:
     self, clip: ClipResult, req: SceneRequirement,
     frame: Optional[np.ndarray] = None,
     ) -> tuple:
-        """3경로 분기 판정
+        """2경로 분기 판정
 
         판정 기준:
-        1) search_score < CONTENT_MIN_THRESHOLD → GENERATE (콘텐츠 자체가 안맞음)
-        2) search_score >= CONTENT_MATCH_THRESHOLD AND attr_match >= ATTRIBUTE_MATCH_THRESHOLD
+        1) search_score >= CONTENT_MATCH_THRESHOLD AND attr_match >= ATTRIBUTE_MATCH_THRESHOLD
            → USE_AS_IS (콘텐츠도 맞고 속성도 맞음)
-        3) search_score >= CONTENT_MIN_THRESHOLD AND (콘텐츠는 맞지만 속성이 다름)
-           → TRANSFORM (역방향 프롬프트로 속성 변환)
+        2) 그 외 → TRANSFORM (점수 미달이거나 속성 불일치 → 변환 제안)
 
         Args:
             clip: 검색된 최적 클립
@@ -553,9 +547,9 @@ class StoryboardMapper:
         """
         search_score = clip.score
 
-        # 콘텐츠 매칭 실패 → 신규 생성
+        # 검색 점수가 매우 낮으면 변환 제안 (PD가 직접 판단)
         if search_score < CONTENT_MIN_THRESHOLD:
-            return BranchDecision.GENERATE, 0.0
+            return BranchDecision.TRANSFORM, 0.0
 
         # 속성 일치도 계산
         attr_match = self._compute_attribute_match(clip, req, frame=frame)
@@ -564,15 +558,13 @@ class StoryboardMapper:
         if search_score >= CONTENT_MATCH_THRESHOLD and attr_match >= ATTRIBUTE_MATCH_THRESHOLD:
             return BranchDecision.USE_AS_IS, attr_match
 
-        # 콘텐츠 OK + 속성 불일치 → 변환
-        if search_score >= CONTENT_MIN_THRESHOLD:
-            # 속성 요구사항이 아예 없으면 (전부 None) 그대로 사용
-            has_attr_req = any([req.target_time, req.target_season, req.target_mood])
-            if not has_attr_req:
-                return BranchDecision.USE_AS_IS, 1.0
-            return BranchDecision.TRANSFORM, attr_match
+        # 속성 요구사항이 아예 없으면 그대로 사용
+        has_attr_req = any([req.target_time, req.target_season, req.target_mood])
+        if not has_attr_req:
+            return BranchDecision.USE_AS_IS, 1.0
 
-        return BranchDecision.GENERATE, attr_match
+        # 속성 불일치 → 변환
+        return BranchDecision.TRANSFORM, attr_match
 
     def _compute_attribute_match(
     self, clip: ClipResult, req: SceneRequirement,
@@ -693,95 +685,11 @@ class StoryboardMapper:
     # 신규 생성 처리
     # ─────────────────────────────────────────
 
-    def _handle_generate(
-        self, req: SceneRequirement, reason: str,
-        neighbor_ctx: Optional[NeighborContext] = None,
-    ) -> MappedScene:
-        """적합한 클립이 없을 때 Runway API로 신규 영상 생성
-
-        InversePromptEngine.generate_video()를 통해 Runway API로
-        신규 영상을 생성한다. GPT-4o-mini가 장면 요구사항을 바탕으로
-        최적의 생성 프롬프트를 동적으로 만든다.
-
-        인접 장면 컨텍스트가 있으면 프롬프트에 포함하여
-        앞뒤 영상과 시각적 연속성을 보장한다.
-
-        API 연동 불가 시 GENERATE 상태로만 표시하고 수동 처리를 안내한다.
-
-        Args:
-            req: 장면 요구사항
-            reason: 생성이 필요한 이유
-            neighbor_ctx: 인접 장면의 시각적 컨텍스트
-
-        Returns:
-            MappedScene (branch=GENERATE)
-        """
-        import os
-        os.makedirs(self.generate_output_dir, exist_ok=True)
-
-        mapped = MappedScene(
-            scene_id=req.scene_id,
-            requirement=req,
-            branch=BranchDecision.GENERATE,
-            notes=f"신규 생성 필요: {reason}",
-        )
-
-        # GPT 동적 프롬프트 생성 시도 → 폴백: 규칙 기반 프롬프트
-        gen_prompt = self._build_generation_prompt_dynamic(req, neighbor_ctx=neighbor_ctx)
-        if not gen_prompt:
-            gen_prompt = self._build_generation_prompt(req, neighbor_ctx=neighbor_ctx)
-
-        # Runway 백엔드가 설정된 경우 영상 생성 시도
-        backend = self.inverse_engine.default_backend
-        if backend == "runway":
-            try:
-                output_path = os.path.join(
-                    self.generate_output_dir,
-                    f"scene{req.scene_id}_generated.mp4"
-                )
-                # 직전 클립 참조 정보 추출 (연속성 보장)
-                prev_frame = neighbor_ctx.prev_last_frame_path if neighbor_ctx else None
-                prev_video = neighbor_ctx.prev_video_path if neighbor_ctx else None
-
-                result = self.inverse_engine.generate_video(
-                    prompt=gen_prompt,
-                    duration_sec=req.duration_sec,
-                    output_path=output_path,
-                    backend=backend,
-                    prev_frame_path=prev_frame,
-                    prev_video_path=prev_video,
-                )
-                if result.get("success"):
-                    mapped.transformed_video_path = result["output_path"]
-                    mapped.transform_result = result
-                    mapped.notes = (
-                        f"{backend.capitalize()} 신규 생성 완료: "
-                        f"prompt='{gen_prompt[:80]}...'"
-                    )
-                    logger.info(f"장면 {req.scene_id} 신규 생성 완료 ({backend})")
-                else:
-                    mapped.notes = f"신규 생성 실패 ({backend}): {result.get('error', 'unknown')}"
-                    logger.error(f"장면 {req.scene_id} 신규 생성 실패: {result.get('error')}")
-            except Exception as e:
-                logger.error(f"장면 {req.scene_id} 신규 생성 예외: {e}")
-                mapped.notes = f"신규 생성 예외: {e}"
-        else:
-            logger.warning(
-                f"장면 {req.scene_id}: 적합한 클립 없고 backend='{backend}'은 "
-                f"신규 생성 미지원. 'runway'로 설정하세요."
-            )
-            mapped.notes = (
-                f"신규 생성 필요 (수동 처리): {reason}. "
-                f"prompt='{gen_prompt[:80]}...'"
-            )
-
-        return mapped
-
     @staticmethod
     def _format_neighbor_context_for_prompt(neighbor_ctx: Optional[NeighborContext]) -> str:
         """인접 장면 컨텍스트를 GPT 프롬프트용 텍스트로 포맷팅
 
-        GENERATE 분기에서 GPT 프롬프트에 삽입할 연속성 힌트를 생성한다.
+        TRANSFORM 분기 프롬프트에 삽입할 연속성 힌트를 생성한다.
         실제 이미지/영상은 API에 직접 전달되므로, 여기서는
         직후 장면 설명과 "직전 프레임이 참조로 첨부된다"는 안내만 포함한다.
 

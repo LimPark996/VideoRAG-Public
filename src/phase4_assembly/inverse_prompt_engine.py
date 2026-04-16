@@ -10,7 +10,7 @@ PDF 설계:
 동작 흐름:
   1. analyze_current_state(clip) → 현재 영상의 속성(시간대, 계절, 분위기) 추론
   2. compute_delta(current, target) → 변환에 필요한 차이 분석
-  3. generate_transform_prompt(delta) → GPT-4o-mini 동적 프롬프트 생성 (Runway용)
+  3. generate_transform_prompt(delta) → 매핑 테이블 기반 프롬프트 생성 (PD가 직접 수정)
   4. apply_transform(clip, prompt, backend) → 실제 변환 실행 (API 호출)
 
 프롬프트 생성 전략:
@@ -203,7 +203,7 @@ class InversePromptEngine:
         openai_api_key: Optional[str] = None,
         runway_api_key: Optional[str] = None,
         default_backend: str = "runway",  # "runway", "opencv"
-        runway_model: str = "gen4_turbo",  # gen4_turbo(5cr/s), gen4(12cr/s), gen4.5(25cr/s)
+        runway_model: str = "gen4_aleph",   # video_to_video 전용: gen4_aleph, seedance2
     ):
         # 빈 문자열도 None으로 처리 (Colab userdata에서 빈 값이 올 수 있음)
         self.openai_api_key = (openai_api_key or "").strip() or os.environ.get("OPENAI_API_KEY", "").strip() or None
@@ -473,10 +473,8 @@ class InversePromptEngine:
     ) -> str:
         """TransformDelta로부터 Runway용 변환 프롬프트 생성
 
-        프롬프트 생성 우선순위:
-          1순위: GPT-4o-mini 동적 생성 (상황별 맞춤 프롬프트)
-          2순위: 하드코딩 매핑 테이블 (GPT API 불가 시)
-          3순위: 제네릭 템플릿 (매핑 테이블에도 없는 조합)
+        하드코딩 매핑 테이블로 프롬프트 생성.
+        PD가 Gradio에서 직접 수정할 수 있도록 기본값을 제공하는 용도.
 
         Args:
             delta: 변환 차이 정보
@@ -488,118 +486,15 @@ class InversePromptEngine:
         if not delta.time_change and not delta.season_change and not delta.mood_change:
             return "No transformation needed."
 
-        # ── 1순위: GPT-4o-mini 동적 프롬프트 생성 ──
-        gpt_prompt = self._generate_dynamic_prompt(delta, current_state, scene_description)
-        if gpt_prompt:
-            logger.info(f"GPT 동적 프롬프트 생성 ({'실내' if delta.is_indoor else '실외'}): {gpt_prompt[:100]}...")
-            return gpt_prompt
-
-        # ── 2순위: 하드코딩 매핑 테이블 폴백 ──
-        logger.info("GPT 프롬프트 생성 실패, 하드코딩 매핑 테이블로 폴백")
+        # 하드코딩 매핑 테이블 기반 프롬프트 생성 (PD가 직접 수정)
         return self._generate_fallback_prompt(delta, scene_description)
-
-    def _generate_dynamic_prompt(
-        self,
-        delta: TransformDelta,
-        current_state: Optional[SceneAttributes] = None,
-        scene_description: Optional[str] = None,
-    ) -> Optional[str]:
-        """GPT-4o-mini를 사용한 상황별 맞춤 변환 프롬프트 동적 생성
-
-        현재 영상의 구체적 상태(밝기, 색온도, 실내/실외)와 목표 상태,
-        장면 설명을 모두 고려하여 Runway API에 최적화된 프롬프트를 생성한다.
-
-        Args:
-            delta: 변환 차이 정보
-            current_state: 현재 영상 속성
-            scene_description: 장면 설명 텍스트
-
-        Returns:
-            생성된 프롬프트 (실패 시 None)
-        """
-        if not self.openai_api_key:
-            return None
-
-        try:
-            from openai import OpenAI
-            client = OpenAI(api_key=self.openai_api_key)
-        except (ImportError, Exception) as e:
-            logger.warning(f"OpenAI 클라이언트 초기화 실패: {e}")
-            return None
-
-        # 변환 요약 구성
-        changes = []
-        if delta.time_change:
-            changes.append(f"시간대: {delta.time_change[0].value} → {delta.time_change[1].value}")
-        if delta.season_change:
-            changes.append(f"계절: {delta.season_change[0].value} → {delta.season_change[1].value}")
-        if delta.mood_change:
-            changes.append(f"분위기: {delta.mood_change[0].value} → {delta.mood_change[1].value}")
-
-        # 현재 상태 정보 구성
-        state_info = ""
-        if current_state:
-            state_info = (
-                f"\n현재 영상 분석 결과:\n"
-                f"- 평균 밝기: {current_state.avg_brightness:.0f}/255\n"
-                f"- 평균 채도: {current_state.avg_saturation:.0f}/255\n"
-                f"- 색온도: {current_state.color_temperature:.0f}K\n"
-                f"- 위치: {'실내' if current_state.location == SceneLocation.INDOOR else '실외'}\n"
-            )
-
-        scene_info = ""
-        if scene_description:
-            scene_info = f"\n장면 설명: {scene_description}\n"
-
-        system_prompt = (
-            "You are an expert video transformation prompt engineer for Runway Gen-4 Turbo.\n\n"
-            "Your job: rewrite a scene to match the director's creative intent.\n"
-            "You receive three pieces of information:\n"
-            "  - SCENE INTENT: what the director wants this scene to express\n"
-            "  - ATTRIBUTE CHANGES: specific visual changes needed (time, season, mood)\n"
-            "  - CURRENT STATE: measured properties of the source video\n\n"
-            "Rules:\n"
-            "1. Start the prompt with the scene intent — describe the desired FINAL scene vividly.\n"
-            "2. Then specify what to change: lighting, sky, color palette, atmosphere, temperature.\n"
-            "3. Be cinematic — use film terminology (golden hour, chiaroscuro, cool blue wash, etc).\n"
-            "4. Mention what to PRESERVE (subjects, composition, camera angle, motion).\n"
-            "5. For indoor: only modify lighting/color grading, never sky/weather.\n"
-            "6. Under 150 words. Output ONLY the prompt, no explanation."
-        )
-
-        user_prompt = (
-            f"SCENE INTENT: {scene_description or 'N/A'}\n\n"
-            f"ATTRIBUTE CHANGES:\n"
-            f"  {chr(10).join(changes)}\n\n"
-            f"LOCATION: {'indoor' if delta.is_indoor else 'outdoor'}\n"
-            f"{state_info}\n"
-            f"Brightness shift: {delta.brightness_shift:.0f}, "
-            f"Temperature shift: {delta.temperature_shift:.0f}K\n"
-        )
-
-        try:
-            response = client.chat.completions.create(
-                model="gpt-4o-mini",
-                messages=[
-                    {"role": "system", "content": system_prompt},
-                    {"role": "user", "content": user_prompt},
-                ],
-                max_tokens=300,
-                temperature=0.4,
-            )
-            prompt = response.choices[0].message.content.strip()
-            logger.info(f"GPT 동적 프롬프트 생성 완료 ({len(prompt)}자)")
-            return prompt
-        except Exception as e:
-            logger.warning(f"GPT 프롬프트 생성 실패: {e}")
-            return None
 
     def _generate_fallback_prompt(
         self, delta: TransformDelta, scene_description: Optional[str] = None
     ) -> str:
-        """하드코딩 매핑 테이블 기반 폴백 프롬프트 생성
+        """하드코딩 매핑 테이블 기반 프롬프트 생성
 
-        GPT API 불가 시 사용되는 2순위 프롬프트 생성 로직.
+        시간대/계절/분위기 변환 조합을 매핑 테이블로 처리.
         scene_description을 앞에 배치하여 장면 의도를 포함한다.
 
         Args:
@@ -803,9 +698,6 @@ class InversePromptEngine:
             cap.release()
 
             src_duration_sec = total_frames / fps if fps > 0 else 5.0
-            # Runway video_to_video 출력 길이: 5s 또는 10s 만 허용
-            # 원본이 7초 이상이면 10s, 미만이면 5s
-            out_duration = 10 if src_duration_sec >= 7.0 else 5
 
             with open(video_path, "rb") as f:
                 video_bytes = f.read()
@@ -819,17 +711,15 @@ class InversePromptEngine:
             # ── Step 2: API 요청 전송 ──
             logger.info(
                 f"[Runway 2/4] video_to_video 요청 전송 중... "
-                f"(model={self.runway_model}, duration={out_duration}s, ratio=1280:720)"
+                f"(model={self.runway_model}, {src_duration_sec:.1f}s)"
             )
             logger.info(f"[Runway 2/4] 프롬프트: {prompt[:120]}")
 
             t0 = time.time()
             task = client.video_to_video.create(
                 model=self.runway_model,
-                prompt_video=video_uri,
+                video_uri=video_uri,
                 prompt_text=prompt,
-                ratio="1280:720",
-                duration=out_duration,
             )
 
             task_id = task.id
@@ -1079,127 +969,6 @@ class InversePromptEngine:
         result["prompt"] = prompt
 
         return result
-
-    # ─────────────────────────────────────────
-    # 신규 영상 생성 (GENERATE 분기용)
-    # ─────────────────────────────────────────
-
-    def generate_video(
-        self,
-        prompt: str,
-        duration_sec: float = 5.0,
-        output_path: Optional[str] = None,
-        backend: Optional[str] = None,
-    ) -> Dict[str, Any]:
-        """프롬프트로부터 신규 영상 생성 (GENERATE 분기)
-
-        StoryboardMapper의 GENERATE 판정 시 호출되어
-        아카이브에 없는 영상을 Runway video-to-video로 새로 생성한다.
-
-        참고: TokenFlow는 기존 영상을 입력으로 받는 video-to-video 모델이므로
-        신규 생성을 지원하지 않는다. 기존 클립 변환은 apply_transform() 사용.
-
-        Args:
-            prompt: 영상 생성 프롬프트 (영어)
-            duration_sec: 생성할 영상 길이 (초)
-            output_path: 출력 영상 경로 (None이면 자동 생성)
-            backend: "runway" (None이면 default_backend)
-
-        Returns:
-            {"success": bool, "output_path": str, "backend": str, ...}
-        """
-        backend = backend or self.default_backend
-        if output_path is None:
-            output_path = os.path.join("output/generated", f"gen_{int(time.time())}.mp4")
-        os.makedirs(os.path.dirname(output_path), exist_ok=True)
-
-        if backend == "tokenflow":
-            logger.warning(
-                "generate_video: TokenFlow는 신규 생성 불가 (video-to-video 전용). "
-                "기존 클립 변환은 apply_transform()을 사용하세요."
-            )
-            return {
-                "success": False,
-                "output_path": None,
-                "backend": "tokenflow",
-                "error": "TokenFlow는 신규 영상 생성 불가 — 기존 클립 변환은 apply_transform() 사용",
-            }
-
-        if backend == "runway":
-            return self._generate_runway(prompt, duration_sec, output_path)
-
-        logger.warning(f"generate_video: '{backend}' 백엔드로는 신규 생성 불가")
-        return {
-            "success": False,
-            "output_path": None,
-            "backend": backend,
-            "error": f"'{backend}' 백엔드는 신규 영상 생성을 지원하지 않습니다. 'runway'를 사용하세요.",
-        }
-
-    def _generate_runway(
-        self, prompt: str, duration_sec: float, output_path: str,
-    ) -> Dict[str, Any]:
-        """Runway SDK로 신규 영상 생성 (video-to-video text-to-video 모드)"""
-        try:
-            import urllib.request
-
-            if not self.runway_api_key:
-                raise ValueError("Runway API 키가 설정되지 않았습니다.")
-
-            client = self._get_runway_client()
-            dur = min(int(duration_sec), 10)
-
-            logger.info(
-                f"[Runway-Gen 1/3] 신규 생성 시작 "
-                f"(model={self.runway_model}, duration={dur}s)"
-            )
-            logger.info(f"[Runway-Gen 1/3] 프롬프트: {prompt[:120]}")
-
-            kwargs = {
-                "model": self.runway_model,
-                "prompt_text": prompt,
-                "ratio": "1280:720",
-                "duration": dur,
-            }
-
-            logger.info(f"[Runway-Gen 2/3] API 요청 전송...")
-            t0 = time.time()
-            task = client.image_to_video.create(**kwargs)
-            task_id = task.id
-            logger.info(f"[Runway-Gen 2/3] 태스크 생성됨: task_id={task_id}")
-
-            logger.info(f"[Runway-Gen 2/3] 영상 생성 대기 중...")
-            task = task.wait_for_task_output()
-            elapsed = time.time() - t0
-            logger.info(f"[Runway-Gen 2/3] 생성 완료! (소요: {elapsed:.0f}초)")
-
-            download_url = task.output[0]
-            logger.info(f"[Runway-Gen 3/3] 다운로드: {download_url[:80]}...")
-            os.makedirs(os.path.dirname(output_path) or ".", exist_ok=True)
-            urllib.request.urlretrieve(download_url, output_path)
-
-            file_size = os.path.getsize(output_path) / 1024
-            logger.info(f"[Runway-Gen 3/3] 저장 완료: {output_path} ({file_size:.0f}KB)")
-
-            # Drive 백업
-            self._backup_to_drive(output_path, "generated")
-
-            return {
-                "success": True,
-                "output_path": output_path,
-                "backend": "runway",
-                "task_id": task_id,
-                "prompt": prompt,
-                "elapsed_sec": elapsed,
-            }
-        except Exception as e:
-            logger.error(f"[Runway-Gen] 생성 실패: {e}")
-            return {
-                "success": False,
-                "output_path": None,
-                "backend": "runway",
-                "error": str(e),
-            }
 
     # ─────────────────────────────────────────
     # Drive 백업 (Runway 생성물 보존)

@@ -383,7 +383,7 @@ class TokenFlowEditor:
                     "n_timesteps":       N_TIMESTEPS,
                     "n_inversion_steps": N_TIMESTEPS,
                     "n_frames":          n_frames,
-                    "latents_path":      f"{rel_data}/latents",
+                    "latents_path":      rel_data,
                     "keyframe_freq":     KEYFRAME_FREQ,
                     "batch_size":        BATCH_SIZE,
                     "guidance_scale":    7.5,

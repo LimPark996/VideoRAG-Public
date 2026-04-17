@@ -385,6 +385,11 @@ class TokenFlowEditor:
                     "batch_size":        BATCH_SIZE,
                     "guidance_scale":    7.5,
                     "seed":              42,
+                    # PnP (Plug-and-Play) 주입 임계값
+                    # pnp_attn_t: 전체 timestep 중 몇 % 까지 attention feature 를 원본에서 주입할지
+                    # pnp_f_t   : 전체 timestep 중 몇 % 까지 spatial feature 를 원본에서 주입할지
+                    "pnp_attn_t":        0.5,
+                    "pnp_f_t":           0.8,
                 }
                 with open(cfg_path, "w") as f:
                     yaml.dump(tokenflow_cfg, f)

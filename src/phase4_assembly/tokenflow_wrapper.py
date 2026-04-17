@@ -25,9 +25,11 @@ TokenFlow (Geyer et al., 2023): https://github.com/omerbt/TokenFlow
 
 import os
 import sys
+import shutil
 import logging
-import tempfile
 import subprocess
+import tempfile
+import uuid
 import yaml
 from typing import Optional, List
 
@@ -289,18 +291,54 @@ class TokenFlowEditor:
             # preprocess.py : argparse 개별 인자 방식 (--config 미지원)
             # run_tokenflow_pnp.py : --config yaml 방식 (OmegaConf)
             #
-            # latent 저장 위치:
-            #   preprocess --save_dir frames_dir  →  frames_dir/latents/ 에 저장
-            #   run_tokenflow_pnp config data_path = frames_dir  →  frames_dir/latents/ 에서 읽음
-            with tempfile.TemporaryDirectory() as cfg_tmp:
-                tokenflow_config_path = os.path.join(cfg_tmp, "tokenflow_config.yaml")
+            # ★ 핵심 제약: preprocess.py 내부에서 os.path.basename(data_path) 를 사용해
+            #   data/{basename}/{i:05d}.jpg 형태로 프레임을 로드한다.
+            #   따라서 절대 경로를 넘기면 data/frames/ 같은 경로가 되어 FileNotFoundError 발생.
+            #   → TOKENFLOW_DIR/data/tf_{uid}/ 에 프레임을 .jpg 로 복사하고,
+            #     상대 경로 "data/tf_{uid}" 를 인자로 전달한다.
+
+            uid = uuid.uuid4().hex[:8]
+            # rel_data : preprocess.py 내부에서 basename()이 적용되므로
+            #   depth-1 경로("data/tf_{uid}")의 basename = "tf_{uid}" 가 된다.
+            #   스크립트는 data/tf_{uid}/{i:05d}.jpg 를 찾으므로 정상.
+            # rel_output: run_tokenflow_pnp.py 가 basename() 을 적용할 수도 있으므로
+            #   슬래시 없는 단일 이름으로 설정해 basename() 여부와 무관하게 동일 폴더가 되도록 한다.
+            rel_data   = f"data/tf_{uid}"    # basename → "tf_{uid}" → data/tf_{uid}/ 정상
+            rel_output = f"tf_{uid}_out"     # basename → "tf_{uid}_out" → TOKENFLOW_DIR 바로 아래
+
+            tf_data_dir   = os.path.join(TOKENFLOW_DIR, rel_data)
+            tf_output_dir = os.path.join(TOKENFLOW_DIR, rel_output)
+            os.makedirs(tf_data_dir,   exist_ok=True)
+            os.makedirs(tf_output_dir, exist_ok=True)
+
+            try:
+                # ── 프레임 복사 (PNG → JPG) ────────────────────────────
+                # preprocess.py 는 {i:05d}.jpg 패턴으로 로드하므로 반드시 .jpg 확장자
+                import cv2
+                src_frames = sorted([
+                    os.path.join(frames_dir, f)
+                    for f in os.listdir(frames_dir)
+                    if f.lower().endswith((".png", ".jpg", ".jpeg"))
+                ])
+                n_frames = len(src_frames)
+                if n_frames == 0:
+                    logger.error(f"[TokenFlow] frames_dir 에 이미지 없음: {frames_dir}")
+                    return []
+
+                for idx, src in enumerate(src_frames):
+                    dst = os.path.join(tf_data_dir, f"{idx:05d}.jpg")
+                    img = cv2.imread(src)
+                    if img is None:
+                        logger.warning(f"[TokenFlow] 프레임 읽기 실패: {src}")
+                        continue
+                    cv2.imwrite(dst, img, [cv2.IMWRITE_JPEG_QUALITY, 95])
+
+                logger.info(
+                    f"[TokenFlow] 프레임 복사 완료: {n_frames}장 → {tf_data_dir}"
+                )
 
                 # ── Step 1: preprocess.py (argparse 개별 인자) ───────────
-                n_frames = len([
-                    f for f in os.listdir(frames_dir)
-                    if f.endswith((".png", ".jpg"))
-                ])
-
+                # --data_path / --save_dir 모두 상대 경로로 전달 (cwd=TOKENFLOW_DIR)
                 logger.info(
                     f"[TokenFlow] Step1 preprocess 시작 "
                     f"(n_timesteps={N_TIMESTEPS}, sd={SD_VERSION}, "
@@ -309,8 +347,8 @@ class TokenFlowEditor:
                 r1 = subprocess.run(
                     [
                         sys.executable, preprocess_script,
-                        "--data_path",        frames_dir,
-                        "--save_dir",         frames_dir,   # latents → frames_dir/latents/
+                        "--data_path",        rel_data,
+                        "--save_dir",         rel_data,   # latents → rel_data/latents/
                         "--sd_version",       SD_VERSION,
                         "--steps",            str(N_TIMESTEPS),
                         "--batch_size",       str(BATCH_SIZE),
@@ -320,7 +358,6 @@ class TokenFlowEditor:
                     capture_output=True, text=True,
                     cwd=TOKENFLOW_DIR,
                 )
-                # preprocess 로그를 Python 로거로 전달
                 if r1.stdout:
                     for line in r1.stdout.strip().splitlines():
                         logger.info(f"[preprocess] {line}")
@@ -335,11 +372,11 @@ class TokenFlowEditor:
                     return []
 
                 # ── Step 2: run_tokenflow_pnp.py (--config yaml) ─────────
-                # data_path = frames_dir 로 설정하면
-                # 스크립트가 frames_dir/latents/ 에서 inversion 결과를 자동으로 읽는다
+                # data_path / output_path 도 TOKENFLOW_DIR 기준 상대 경로
+                cfg_path = os.path.join(TOKENFLOW_DIR, f"cfg_tf_{uid}.yaml")
                 tokenflow_cfg = {
-                    "data_path":         frames_dir,
-                    "output_path":       edited_dir,
+                    "data_path":         rel_data,
+                    "output_path":       rel_output,
                     "prompt":            prompt,
                     "negative_prompt":   "blurry, low quality, distorted",
                     "sd_version":        SD_VERSION,
@@ -349,7 +386,7 @@ class TokenFlowEditor:
                     "guidance_scale":    7.5,
                     "seed":              42,
                 }
-                with open(tokenflow_config_path, "w") as f:
+                with open(cfg_path, "w") as f:
                     yaml.dump(tokenflow_cfg, f)
 
                 logger.info(
@@ -359,8 +396,7 @@ class TokenFlowEditor:
                 logger.info(f"[TokenFlow] 프롬프트: {prompt[:100]}")
 
                 r2 = subprocess.run(
-                    [sys.executable, tokenflow_script,
-                     "--config", tokenflow_config_path],
+                    [sys.executable, tokenflow_script, "--config", cfg_path],
                     capture_output=True, text=True,
                     cwd=TOKENFLOW_DIR,
                 )
@@ -377,17 +413,33 @@ class TokenFlowEditor:
                     )
                     return []
 
-            # ── 출력 프레임 수집 ──────────────────────────────────────
-            # TokenFlow는 edited_dir 바로 아래 또는 하위 폴더에 프레임을 저장한다
-            edited: List[str] = []
-            for root, _, files in os.walk(edited_dir):
-                for fname in sorted(files):
-                    if fname.lower().endswith((".png", ".jpg")):
-                        edited.append(os.path.join(root, fname))
-            edited.sort()
+                # ── 출력 프레임 수집 → edited_dir 로 복사 ────────────────
+                os.makedirs(edited_dir, exist_ok=True)
+                raw_edited: List[str] = []
+                for root, _, files in os.walk(tf_output_dir):
+                    for fname in sorted(files):
+                        if fname.lower().endswith((".png", ".jpg", ".jpeg")):
+                            raw_edited.append(os.path.join(root, fname))
+                raw_edited.sort()
 
-            logger.info(f"[TokenFlow._run_tokenflow] 편집 완료: {len(edited)}프레임")
-            return edited
+                edited: List[str] = []
+                for i, src in enumerate(raw_edited):
+                    ext = os.path.splitext(src)[1]
+                    dst = os.path.join(edited_dir, f"{i:05d}{ext}")
+                    shutil.copy2(src, dst)
+                    edited.append(dst)
+
+                logger.info(f"[TokenFlow._run_tokenflow] 편집 완료: {len(edited)}프레임")
+                return edited
+
+            finally:
+                # ── 임시 디렉터리 정리 ─────────────────────────────────
+                for tmp_path in [tf_data_dir, tf_output_dir]:
+                    if os.path.exists(tmp_path):
+                        shutil.rmtree(tmp_path, ignore_errors=True)
+                cfg_file = os.path.join(TOKENFLOW_DIR, f"cfg_tf_{uid}.yaml")
+                if os.path.exists(cfg_file):
+                    os.remove(cfg_file)
 
         except Exception as e:
             logger.error(f"[TokenFlow._run_tokenflow] 예외 발생: {e}", exc_info=True)

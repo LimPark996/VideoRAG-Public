@@ -47,10 +47,14 @@ SD_MODEL_ID    = "CompVis/stable-diffusion-v1-4"
 def _ensure_tokenflow() -> bool:
     """TokenFlow 레포가 없으면 클론.
 
+    tokenflow_pnp.py 파일 존재 여부로 판단한다.
+    tokenflow/ 디렉토리만 확인하면 tokenflow_pnp.py가 없어도
+    True를 반환하는 문제가 있어서 실제 import 대상 파일을 체크한다.
+
     Returns:
         True: 사용 가능 / False: 설치 실패
     """
-    if os.path.exists(os.path.join(TOKENFLOW_DIR, "tokenflow")):
+    if os.path.exists(os.path.join(TOKENFLOW_DIR, "tokenflow_pnp.py")):
         return True
 
     logger.info("[TokenFlow] 레포 클론 시작...")

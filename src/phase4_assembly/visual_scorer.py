@@ -78,12 +78,17 @@ class VisualScorer:
         self._loaded = True
 
     def _get_transform(self):
-        """DINOv2 입력 전처리 변환"""
+        """DINOv2 입력 전처리 변환
+
+        timm DINOv2 폴백(vit_base_patch14_dinov2)은 518×518을 요구한다.
+        PyTorch Hub DINOv2는 224×224. 로드된 모드에 따라 크기를 선택한다.
+        """
         import torchvision.transforms as T
+        size = 518 if getattr(self, '_mode', 'dinov2') == "timm" else 224
         return T.Compose([
             T.ToPILImage(),
-            T.Resize(224),
-            T.CenterCrop(224),
+            T.Resize(size),
+            T.CenterCrop(size),
             T.ToTensor(),
             T.Normalize(
                 mean=[0.485, 0.456, 0.406],

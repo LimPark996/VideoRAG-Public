@@ -307,9 +307,11 @@ class TokenFlowEditor:
             rel_output = f"tf_{uid}_out"     # basename → "tf_{uid}_out" → TOKENFLOW_DIR 바로 아래
 
             tf_data_dir   = os.path.join(TOKENFLOW_DIR, rel_data)
-            tf_output_dir = os.path.join(TOKENFLOW_DIR, rel_output)
-            os.makedirs(tf_data_dir,   exist_ok=True)
-            os.makedirs(tf_output_dir, exist_ok=True)
+            # tf_output_dir 은 미리 생성하지 않는다.
+            # run_tokenflow_pnp.py 가 output_path 뒤에 _pnp_SD_*/uid/prompt/... 를 덧붙여
+            # 실제 디렉터리를 직접 생성하므로, TOKENFLOW_DIR 내에서 rel_output 접두어로
+            # glob 하여 실제 위치를 찾는다.
+            os.makedirs(tf_data_dir, exist_ok=True)
 
             try:
                 # ── 프레임 복사 (PNG → JPG) ────────────────────────────
@@ -423,13 +425,18 @@ class TokenFlowEditor:
                     return []
 
                 # ── 출력 프레임 수집 → edited_dir 로 복사 ────────────────
+                # run_tokenflow_pnp.py 는 output_path 에 _pnp_SD_*/uid/prompt/... 를
+                # 자동으로 덧붙여 저장하므로, rel_output 접두어를 가진 모든 디렉터리를
+                # 재귀 탐색하여 이미지를 수집한다.
                 os.makedirs(edited_dir, exist_ok=True)
-                raw_edited: List[str] = []
-                for root, _, files in os.walk(tf_output_dir):
-                    for fname in sorted(files):
-                        if fname.lower().endswith((".png", ".jpg", ".jpeg")):
-                            raw_edited.append(os.path.join(root, fname))
-                raw_edited.sort()
+                import glob as _glob
+                raw_edited: List[str] = sorted(
+                    f for f in _glob.glob(
+                        os.path.join(TOKENFLOW_DIR, f"{rel_output}*", "**", "*"),
+                        recursive=True,
+                    )
+                    if os.path.isfile(f) and f.lower().endswith((".png", ".jpg", ".jpeg"))
+                )
 
                 edited: List[str] = []
                 for i, src in enumerate(raw_edited):
@@ -443,7 +450,12 @@ class TokenFlowEditor:
 
             finally:
                 # ── 임시 디렉터리 정리 ─────────────────────────────────
-                for tmp_path in [tf_data_dir, tf_output_dir]:
+                # tf_data_dir 외에 run_tokenflow_pnp.py 가 생성한 rel_output 접두어
+                # 디렉터리도 모두 제거한다.
+                import glob as _glob
+                for tmp_path in [tf_data_dir] + _glob.glob(
+                    os.path.join(TOKENFLOW_DIR, f"{rel_output}*")
+                ):
                     if os.path.exists(tmp_path):
                         shutil.rmtree(tmp_path, ignore_errors=True)
                 cfg_file = os.path.join(TOKENFLOW_DIR, f"cfg_tf_{uid}.yaml")

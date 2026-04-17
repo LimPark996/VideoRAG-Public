@@ -43,8 +43,9 @@ BATCH_SIZE     = 8
 
 # TokenFlow 레포 경로 (Colab 기준)
 TOKENFLOW_DIR  = "/content/TokenFlow"
-# Stable Diffusion 버전 (TokenFlow config 형식: "1.4" / "1.5" / "2.1")
-SD_VERSION     = "1.4"
+# Stable Diffusion 버전
+# preprocess.py 유효값: {1.5, 2.0, 2.1, ControlNet, depth}  ("1.4" 없음)
+SD_VERSION     = "1.5"
 
 
 def _ensure_tokenflow() -> bool:
@@ -254,36 +255,37 @@ class TokenFlowEditor:
                 logger.error(f"[TokenFlow] run_tokenflow_pnp.py 없음: {tokenflow_script}")
                 return []
 
-            # TokenFlow는 config yaml을 통해 파라미터를 받는다
-            # preprocess.py와 run_tokenflow_pnp.py 각각 별도 config가 필요하다
+            # preprocess.py : argparse 개별 인자 방식 (--config 미지원)
+            # run_tokenflow_pnp.py : --config yaml 방식 (OmegaConf)
+            #
+            # latent 저장 위치:
+            #   preprocess --save_dir frames_dir  →  frames_dir/latents/ 에 저장
+            #   run_tokenflow_pnp config data_path = frames_dir  →  frames_dir/latents/ 에서 읽음
             with tempfile.TemporaryDirectory() as cfg_tmp:
-                preprocess_config_path = os.path.join(cfg_tmp, "preprocess_config.yaml")
-                tokenflow_config_path  = os.path.join(cfg_tmp, "tokenflow_config.yaml")
+                tokenflow_config_path = os.path.join(cfg_tmp, "tokenflow_config.yaml")
 
-                # ── Step 1: preprocess.py config ─────────────────────────
-                # DDIM inversion 결과는 TokenFlow 레포 내 data/ 디렉토리에 저장된다
-                # data_path 아래에 video_name 서브폴더가 생성되는 구조
-                inversion_dir = os.path.join(cfg_tmp, "inversion")
-                os.makedirs(inversion_dir)
-
-                preprocess_cfg = {
-                    "data_path":         frames_dir,
-                    "inversion_prompt":  source_prompt or prompt,
-                    "save_dir":          inversion_dir,
-                    "sd_version":        SD_VERSION,
-                    "n_timesteps":       N_TIMESTEPS,
-                    "n_frames":          -1,        # -1 = 전체 프레임
-                }
-                with open(preprocess_config_path, "w") as f:
-                    yaml.dump(preprocess_cfg, f)
+                # ── Step 1: preprocess.py (argparse 개별 인자) ───────────
+                n_frames = len([
+                    f for f in os.listdir(frames_dir)
+                    if f.endswith((".png", ".jpg"))
+                ])
 
                 logger.info(
                     f"[TokenFlow] Step1 preprocess 시작 "
-                    f"(n_timesteps={N_TIMESTEPS}, sd={SD_VERSION}, device={self.device})"
+                    f"(n_timesteps={N_TIMESTEPS}, sd={SD_VERSION}, "
+                    f"n_frames={n_frames}, device={self.device})"
                 )
                 r1 = subprocess.run(
-                    [sys.executable, preprocess_script,
-                     "--config", preprocess_config_path],
+                    [
+                        sys.executable, preprocess_script,
+                        "--data_path",        frames_dir,
+                        "--save_dir",         frames_dir,   # latents → frames_dir/latents/
+                        "--sd_version",       SD_VERSION,
+                        "--steps",            str(N_TIMESTEPS),
+                        "--batch_size",       str(BATCH_SIZE),
+                        "--n_frames",         str(n_frames),
+                        "--inversion_prompt", source_prompt or prompt,
+                    ],
                     capture_output=True, text=True,
                     cwd=TOKENFLOW_DIR,
                 )
@@ -301,21 +303,20 @@ class TokenFlowEditor:
                     )
                     return []
 
-                # ── Step 2: run_tokenflow_pnp.py config ──────────────────
+                # ── Step 2: run_tokenflow_pnp.py (--config yaml) ─────────
+                # data_path = frames_dir 로 설정하면
+                # 스크립트가 frames_dir/latents/ 에서 inversion 결과를 자동으로 읽는다
                 tokenflow_cfg = {
                     "data_path":         frames_dir,
-                    "inversion_path":    inversion_dir,
                     "output_path":       edited_dir,
                     "prompt":            prompt,
-                    "source_prompt":     source_prompt or prompt,
                     "negative_prompt":   "blurry, low quality, distorted",
                     "sd_version":        SD_VERSION,
                     "n_timesteps":       N_TIMESTEPS,
                     "keyframe_freq":     KEYFRAME_FREQ,
                     "batch_size":        BATCH_SIZE,
                     "guidance_scale":    7.5,
-                    "n_inversion_steps": N_TIMESTEPS,
-                    "image_size":        [512, 512],
+                    "seed":              42,
                 }
                 with open(tokenflow_config_path, "w") as f:
                     yaml.dump(tokenflow_cfg, f)

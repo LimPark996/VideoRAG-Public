@@ -86,7 +86,35 @@ def _ensure_tokenflow() -> bool:
         )
 
     logger.info("[TokenFlow] 설치 완료")
+    _patch_tokenflow()
     return True
+
+
+def _patch_tokenflow():
+    """TokenFlow 스크립트의 알려진 호환성 문제를 패치.
+
+    문제: preprocess.py / run_tokenflow_pnp.py 가 SD 모델 로드 시
+    revision="fp16" 을 하드코딩하는데, runwayml/stable-diffusion-v1-5
+    저장소에서 fp16 브랜치가 삭제되어 404 오류가 발생한다.
+
+    수정: revision="fp16" 인자 전체를 제거한다.
+    """
+    import re
+
+    targets = ["preprocess.py", "run_tokenflow_pnp.py", "tokenflow_utils.py"]
+    for fname in targets:
+        fpath = os.path.join(TOKENFLOW_DIR, fname)
+        if not os.path.exists(fpath):
+            continue
+        with open(fpath, "r", encoding="utf-8") as f:
+            src = f.read()
+        # revision="fp16" 또는 revision='fp16' 패턴 제거
+        patched = re.sub(r',\s*revision=["\']fp16["\']', "", src)
+        patched = re.sub(r'revision=["\']fp16["\'],\s*', "", patched)
+        if patched != src:
+            with open(fpath, "w", encoding="utf-8") as f:
+                f.write(patched)
+            logger.info(f"[TokenFlow] 패치 완료: {fname} (revision='fp16' 제거)")
 
 
 class TokenFlowEditor:
@@ -176,7 +204,7 @@ class TokenFlowEditor:
     # ─────────────────────────────────────────
 
     def _ensure_ready(self):
-        """첫 호출 시 TokenFlow 설치 확인"""
+        """첫 호출 시 TokenFlow 설치 + 호환성 패치 확인"""
         if self._ready:
             return
         if not _ensure_tokenflow():
@@ -184,6 +212,9 @@ class TokenFlowEditor:
                 "TokenFlow 설치 실패. "
                 "인터넷 연결 또는 git이 필요합니다."
             )
+        # 이미 clone된 상태에서도 패치가 적용되도록 매번 호출
+        # (revision="fp16" 제거 — 이미 제거된 경우 re.sub이 no-op)
+        _patch_tokenflow()
         self._ready = True
 
     def _extract_frames(

@@ -6,6 +6,10 @@ TokenFlow (Geyer et al., 2023): https://github.com/omerbt/TokenFlow
   - Stable Diffusion + DDIM inversion + attention feature sharing
   - keyframe subsampling으로 실용적인 속도 달성
 
+실행 흐름 (CLI 기반, subprocess):
+  1. preprocess.py       : DDIM inversion → 레포 내부 latent 저장
+  2. run_tokenflow_pnp.py: TokenFlow PnP 편집 → 프레임 출력
+
 설정값 (고정):
   extract_fps   = 8    원본에서 8fps로 프레임 추출 (30fps → 1/4 subsampling)
   keyframe_freq = 10   추출된 프레임 중 10개마다 keyframe 1개
@@ -22,13 +26,12 @@ TokenFlow (Geyer et al., 2023): https://github.com/omerbt/TokenFlow
 import os
 import sys
 import logging
-import shutil
 import tempfile
 import subprocess
+import yaml
 from typing import Optional, List
 
 import cv2
-import numpy as np
 
 logger = logging.getLogger(__name__)
 
@@ -40,22 +43,29 @@ BATCH_SIZE     = 8
 
 # TokenFlow 레포 경로 (Colab 기준)
 TOKENFLOW_DIR  = "/content/TokenFlow"
-# Stable Diffusion 모델 (HF Hub ID)
-SD_MODEL_ID    = "CompVis/stable-diffusion-v1-4"
+# Stable Diffusion 버전 (TokenFlow config 형식: "1.4" / "1.5" / "2.1")
+SD_VERSION     = "1.4"
 
 
 def _ensure_tokenflow() -> bool:
     """TokenFlow 레포가 없으면 클론.
 
-    tokenflow_pnp.py 파일 존재 여부로 판단한다.
-    tokenflow/ 디렉토리만 확인하면 tokenflow_pnp.py가 없어도
-    True를 반환하는 문제가 있어서 실제 import 대상 파일을 체크한다.
+    run_tokenflow_pnp.py 파일 존재 여부로 판단한다.
+    (실제 레포에는 tokenflow_pnp.py가 없고 run_tokenflow_pnp.py가 CLI 진입점)
 
     Returns:
         True: 사용 가능 / False: 설치 실패
     """
-    if os.path.exists(os.path.join(TOKENFLOW_DIR, "tokenflow_pnp.py")):
+    if os.path.exists(os.path.join(TOKENFLOW_DIR, "run_tokenflow_pnp.py")):
         return True
+
+    # 디렉토리가 이미 존재하면 re-clone 하지 않는다 (이미 수동 clone한 경우 등)
+    if os.path.isdir(TOKENFLOW_DIR):
+        logger.warning(
+            f"[TokenFlow] {TOKENFLOW_DIR} 존재하지만 run_tokenflow_pnp.py 없음 — "
+            f"디렉토리는 있으나 파일이 없습니다. 직접 git clone을 확인하세요."
+        )
+        return False
 
     logger.info("[TokenFlow] 레포 클론 시작...")
     r = subprocess.run(
@@ -76,12 +86,6 @@ def _ensure_tokenflow() -> bool:
 
     logger.info("[TokenFlow] 설치 완료")
     return True
-
-
-def _add_tokenflow_to_path():
-    """TokenFlow 소스를 sys.path에 추가"""
-    if TOKENFLOW_DIR not in sys.path:
-        sys.path.insert(0, TOKENFLOW_DIR)
 
 
 class TokenFlowEditor:
@@ -171,7 +175,7 @@ class TokenFlowEditor:
     # ─────────────────────────────────────────
 
     def _ensure_ready(self):
-        """첫 호출 시 TokenFlow 설치 + 모델 로드"""
+        """첫 호출 시 TokenFlow 설치 확인"""
         if self._ready:
             return
         if not _ensure_tokenflow():
@@ -179,7 +183,6 @@ class TokenFlowEditor:
                 "TokenFlow 설치 실패. "
                 "인터넷 연결 또는 git이 필요합니다."
             )
-        _add_tokenflow_to_path()
         self._ready = True
 
     def _extract_frames(
@@ -227,60 +230,135 @@ class TokenFlowEditor:
         prompt: str,
         source_prompt: str,
     ) -> List[str]:
-        """TokenFlow PnP 편집 실행.
+        """TokenFlow PnP 편집 실행 (subprocess 방식).
 
-        TokenFlow의 TokenFlow 클래스를 직접 호출한다.
-        실패 시 빈 리스트 반환.
+        실제 TokenFlow 레포는 tokenflow_pnp.py 모듈이 아니라
+        CLI 스크립트(preprocess.py + run_tokenflow_pnp.py)로 구성되어 있다.
+        따라서 Python import 대신 subprocess로 각 스크립트를 순서대로 호출한다.
+
+        단계:
+          1. preprocess.py   : DDIM inversion → 레포 내부 inversion_dir에 latent 저장
+          2. run_tokenflow_pnp.py: TokenFlow PnP → edited_dir에 프레임 저장
 
         Returns:
-            편집된 프레임 경로 리스트 (오름차순)
+            편집된 프레임 경로 리스트 (오름차순), 실패 시 빈 리스트
         """
         try:
-            # TokenFlow 레포의 tokenflow 패키지 import
-            from tokenflow_pnp import TokenFlow  # type: ignore
+            preprocess_script  = os.path.join(TOKENFLOW_DIR, "preprocess.py")
+            tokenflow_script   = os.path.join(TOKENFLOW_DIR, "run_tokenflow_pnp.py")
 
-            config = {
-                # 경로
-                "data_path":    frames_dir,
-                "output_path":  edited_dir,
-                # 프롬프트
-                "prompt":        prompt,
-                "source_prompt": source_prompt or prompt,
-                # 모델
-                "model_path":    SD_MODEL_ID,
-                "device":        self.device,
-                # 핵심 파라미터
-                "n_timesteps":   N_TIMESTEPS,
-                "keyframe_freq": KEYFRAME_FREQ,
-                "batch_size":    BATCH_SIZE,
-                # 이미지 크기 (TokenFlow 권장: 512)
-                "image_size":    [512, 512],
-                # 가이던스
-                "guidance_scale": 7.5,
-                "n_inversion_steps": N_TIMESTEPS,
-            }
+            if not os.path.exists(preprocess_script):
+                logger.error(f"[TokenFlow] preprocess.py 없음: {preprocess_script}")
+                return []
+            if not os.path.exists(tokenflow_script):
+                logger.error(f"[TokenFlow] run_tokenflow_pnp.py 없음: {tokenflow_script}")
+                return []
 
-            logger.info(
-                f"[TokenFlow._run_tokenflow] 시작 "
-                f"(keyframe_freq={KEYFRAME_FREQ}, n_timesteps={N_TIMESTEPS}, "
-                f"batch_size={BATCH_SIZE}, device={self.device})"
-            )
-            logger.info(f"[TokenFlow._run_tokenflow] 프롬프트: {prompt[:100]}")
+            # TokenFlow는 config yaml을 통해 파라미터를 받는다
+            # preprocess.py와 run_tokenflow_pnp.py 각각 별도 config가 필요하다
+            with tempfile.TemporaryDirectory() as cfg_tmp:
+                preprocess_config_path = os.path.join(cfg_tmp, "preprocess_config.yaml")
+                tokenflow_config_path  = os.path.join(cfg_tmp, "tokenflow_config.yaml")
 
-            model = TokenFlow(config)
-            model.run_pnp()
+                # ── Step 1: preprocess.py config ─────────────────────────
+                # DDIM inversion 결과는 TokenFlow 레포 내 data/ 디렉토리에 저장된다
+                # data_path 아래에 video_name 서브폴더가 생성되는 구조
+                inversion_dir = os.path.join(cfg_tmp, "inversion")
+                os.makedirs(inversion_dir)
 
-            # 출력 프레임 수집
-            edited = sorted([
-                os.path.join(edited_dir, f)
-                for f in os.listdir(edited_dir)
-                if f.endswith((".png", ".jpg"))
-            ])
+                preprocess_cfg = {
+                    "data_path":         frames_dir,
+                    "inversion_prompt":  source_prompt or prompt,
+                    "save_dir":          inversion_dir,
+                    "sd_version":        SD_VERSION,
+                    "n_timesteps":       N_TIMESTEPS,
+                    "n_frames":          -1,        # -1 = 전체 프레임
+                }
+                with open(preprocess_config_path, "w") as f:
+                    yaml.dump(preprocess_cfg, f)
+
+                logger.info(
+                    f"[TokenFlow] Step1 preprocess 시작 "
+                    f"(n_timesteps={N_TIMESTEPS}, sd={SD_VERSION}, device={self.device})"
+                )
+                r1 = subprocess.run(
+                    [sys.executable, preprocess_script,
+                     "--config", preprocess_config_path],
+                    capture_output=True, text=True,
+                    cwd=TOKENFLOW_DIR,
+                )
+                # preprocess 로그를 Python 로거로 전달
+                if r1.stdout:
+                    for line in r1.stdout.strip().splitlines():
+                        logger.info(f"[preprocess] {line}")
+                if r1.stderr:
+                    for line in r1.stderr.strip().splitlines():
+                        logger.warning(f"[preprocess] {line}")
+
+                if r1.returncode != 0:
+                    logger.error(
+                        f"[TokenFlow] preprocess.py 실패 (returncode={r1.returncode})"
+                    )
+                    return []
+
+                # ── Step 2: run_tokenflow_pnp.py config ──────────────────
+                tokenflow_cfg = {
+                    "data_path":         frames_dir,
+                    "inversion_path":    inversion_dir,
+                    "output_path":       edited_dir,
+                    "prompt":            prompt,
+                    "source_prompt":     source_prompt or prompt,
+                    "negative_prompt":   "blurry, low quality, distorted",
+                    "sd_version":        SD_VERSION,
+                    "n_timesteps":       N_TIMESTEPS,
+                    "keyframe_freq":     KEYFRAME_FREQ,
+                    "batch_size":        BATCH_SIZE,
+                    "guidance_scale":    7.5,
+                    "n_inversion_steps": N_TIMESTEPS,
+                    "image_size":        [512, 512],
+                }
+                with open(tokenflow_config_path, "w") as f:
+                    yaml.dump(tokenflow_cfg, f)
+
+                logger.info(
+                    f"[TokenFlow] Step2 run_tokenflow_pnp 시작 "
+                    f"(keyframe_freq={KEYFRAME_FREQ}, batch_size={BATCH_SIZE})"
+                )
+                logger.info(f"[TokenFlow] 프롬프트: {prompt[:100]}")
+
+                r2 = subprocess.run(
+                    [sys.executable, tokenflow_script,
+                     "--config", tokenflow_config_path],
+                    capture_output=True, text=True,
+                    cwd=TOKENFLOW_DIR,
+                )
+                if r2.stdout:
+                    for line in r2.stdout.strip().splitlines():
+                        logger.info(f"[tokenflow] {line}")
+                if r2.stderr:
+                    for line in r2.stderr.strip().splitlines():
+                        logger.warning(f"[tokenflow] {line}")
+
+                if r2.returncode != 0:
+                    logger.error(
+                        f"[TokenFlow] run_tokenflow_pnp.py 실패 (returncode={r2.returncode})"
+                    )
+                    return []
+
+            # ── 출력 프레임 수집 ──────────────────────────────────────
+            # TokenFlow는 edited_dir 바로 아래 또는 하위 폴더에 프레임을 저장한다
+            edited: List[str] = []
+            for root, _, files in os.walk(edited_dir):
+                for fname in sorted(files):
+                    if fname.lower().endswith((".png", ".jpg")):
+                        edited.append(os.path.join(root, fname))
+            edited.sort()
+
             logger.info(f"[TokenFlow._run_tokenflow] 편집 완료: {len(edited)}프레임")
             return edited
 
         except Exception as e:
-            logger.error(f"[TokenFlow._run_tokenflow] 실패: {e}", exc_info=True)
+            logger.error(f"[TokenFlow._run_tokenflow] 예외 발생: {e}", exc_info=True)
             return []
 
     def _reconstruct_video(

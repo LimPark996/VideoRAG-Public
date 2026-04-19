@@ -11,16 +11,23 @@ TokenFlow (Geyer et al., 2023): https://github.com/omerbt/TokenFlow
   2. run_tokenflow_pnp.py: TokenFlow PnP 편집 → 프레임 출력
 
 설정값 (고정):
-  extract_fps   = 8    원본에서 8fps로 프레임 추출 (30fps → 1/4 subsampling)
-  keyframe_freq = 10   추출된 프레임 중 10개마다 keyframe 1개
-  n_timesteps   = 50   DDIM steps
+  extract_fps   = 4    원본에서 4fps로 프레임 추출 (30fps → 1/7.5 subsampling)
+  keyframe_freq = 4    추출된 프레임 중 4개마다 keyframe 1개
+  n_timesteps   = 30   DDIM steps (50→30: 초반 픽셀 깨짐 완화)
   batch_size    = 8    keyframe 배치 크기
 
-5초 클립 기준:
-  추출 프레임 = 5 × 8 = 40개
-  keyframe    = 40 ÷ 10 = 4개
-  DDIM 배치   = ceil(4/8) = 1배치
-  예상 소요   ~ 30~60초 (T4)
+  변경 이유:
+    - extract_fps 8 + keyframe_freq 10 조합은 7초 이하 짧은 클립에서
+      keyframe이 5개 미만으로 줄어 보간이 뭉개지고 앞 구간이 반복되는 문제 발생
+    - extract_fps 4 + keyframe_freq 4 로 변경하면 7초 클립 기준
+      keyframe 7개로 균등하게 확보되어 안정적으로 동작
+    - n_timesteps 50 → 30: DDIM 초반 구간 불안정으로 인한 픽셀 깨짐 완화
+
+7초 클립 기준:
+  추출 프레임 = 7 × 4 = 28개
+  keyframe    = 28 ÷ 4 = 7개
+  DDIM 배치   = ceil(7/8) = 1배치
+  예상 소요   ~ 20~40초 (T4)
 """
 
 import os
@@ -39,9 +46,9 @@ import cv2
 logger = logging.getLogger(__name__)
 
 # ── 고정 설정 ──────────────────────────────────────────────
-EXTRACT_FPS    = 8
-KEYFRAME_FREQ  = 10
-N_TIMESTEPS    = 50
+EXTRACT_FPS    = 4
+KEYFRAME_FREQ  = 4
+N_TIMESTEPS    = 30
 BATCH_SIZE     = 8
 
 # TokenFlow 레포 경로 (Colab 기준)

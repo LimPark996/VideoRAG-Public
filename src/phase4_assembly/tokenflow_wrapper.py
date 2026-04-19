@@ -25,6 +25,7 @@ TokenFlow (Geyer et al., 2023): https://github.com/omerbt/TokenFlow
 
 import os
 import sys
+import re
 import shutil
 import logging
 import subprocess
@@ -48,6 +49,20 @@ TOKENFLOW_DIR  = "/content/TokenFlow"
 # Stable Diffusion 버전
 # preprocess.py 유효값: {1.5, 2.0, 2.1, ControlNet, depth}  ("1.4" 없음)
 SD_VERSION     = "1.5"
+
+
+def _sanitize_for_path(text: str) -> str:
+    """
+    [문제 2 수정] 프롬프트 문자열을 폴더명에 안전하게 쓸 수 있도록 정제.
+
+    TokenFlow가 output_path 뒤에 프롬프트를 폴더명으로 붙이는데,
+    슬래시(/) · 백슬래시 · 공백 · 특수문자가 포함되면 경로가 깨진다.
+    → 영문자·숫자·하이픈·언더스코어만 남기고 나머지는 '_'로 치환.
+    """
+    sanitized = re.sub(r'[^\w\-]', '_', text)
+    # 연속 언더스코어 압축 & 앞뒤 정리
+    sanitized = re.sub(r'_+', '_', sanitized).strip('_')
+    return sanitized[:80]  # 폴더명이 너무 길어지지 않도록 80자 제한
 
 
 def _ensure_tokenflow() -> bool:
@@ -101,8 +116,6 @@ def _patch_tokenflow():
 
     수정: revision="fp16" 인자 전체를 제거한다.
     """
-    import re
-
     targets = ["preprocess.py", "run_tokenflow_pnp.py", "tokenflow_utils.py"]
     for fname in targets:
         fpath = os.path.join(TOKENFLOW_DIR, fname)
@@ -117,6 +130,55 @@ def _patch_tokenflow():
             with open(fpath, "w", encoding="utf-8") as f:
                 f.write(patched)
             logger.info(f"[TokenFlow] 패치 완료: {fname} (revision='fp16' 제거)")
+
+
+def _cleanup_tokenflow_dirs(uid: str, rel_output: str):
+    """
+    [문제 6 수정] TokenFlow 실행 중 생성된 임시 디렉터리를 안전하게 정리.
+
+    finally 블록 외부에서도 호출 가능하도록 분리.
+    glob으로 rel_output 접두어 디렉터리 전체 삭제.
+    """
+    import glob as _glob
+
+    targets = []
+
+    # 프레임 복사용 임시 폴더
+    tf_data_dir = os.path.join(TOKENFLOW_DIR, "data", f"tf_{uid}")
+    if os.path.exists(tf_data_dir):
+        targets.append(tf_data_dir)
+
+    # run_tokenflow_pnp.py 출력 폴더 (접두어 glob)
+    for path in _glob.glob(os.path.join(TOKENFLOW_DIR, f"{rel_output}*")):
+        targets.append(path)
+
+    # yaml config 파일
+    cfg_file = os.path.join(TOKENFLOW_DIR, f"cfg_tf_{uid}.yaml")
+    if os.path.exists(cfg_file):
+        targets.append(cfg_file)
+
+    for t in targets:
+        try:
+            if os.path.isdir(t):
+                shutil.rmtree(t, ignore_errors=True)
+            elif os.path.isfile(t):
+                os.remove(t)
+        except Exception as e:
+            logger.warning(f"[TokenFlow] 임시 파일 정리 실패 (무시): {t} — {e}")
+
+
+def _check_preprocess_args() -> bool:
+    """
+    [문제 7 수정] preprocess.py가 --n_frames 인자를 지원하는지 사전 확인.
+
+    지원하지 않으면 해당 인자를 건너뛰도록 플래그를 반환한다.
+    """
+    script = os.path.join(TOKENFLOW_DIR, "preprocess.py")
+    if not os.path.exists(script):
+        return False
+    with open(script, "r", encoding="utf-8") as f:
+        src = f.read()
+    return "--n_frames" in src or "n_frames" in src
 
 
 class TokenFlowEditor:
@@ -139,6 +201,8 @@ class TokenFlowEditor:
         import torch
         self.device = device or ("cuda" if torch.cuda.is_available() else "cpu")
         self._ready = False
+        # [문제 7 수정] preprocess.py --n_frames 지원 여부 캐시
+        self._supports_n_frames: Optional[bool] = None
 
     # ─────────────────────────────────────────
     # Public API
@@ -217,6 +281,15 @@ class TokenFlowEditor:
         # 이미 clone된 상태에서도 패치가 적용되도록 매번 호출
         # (revision="fp16" 제거 — 이미 제거된 경우 re.sub이 no-op)
         _patch_tokenflow()
+
+        # [문제 7 수정] --n_frames 지원 여부 사전 확인
+        self._supports_n_frames = _check_preprocess_args()
+        if not self._supports_n_frames:
+            logger.warning(
+                "[TokenFlow] preprocess.py가 --n_frames 인자를 지원하지 않습니다. "
+                "해당 인자를 건너뜁니다."
+            )
+
         self._ready = True
 
     def _extract_frames(
@@ -288,35 +361,17 @@ class TokenFlowEditor:
                 logger.error(f"[TokenFlow] run_tokenflow_pnp.py 없음: {tokenflow_script}")
                 return []
 
-            # preprocess.py : argparse 개별 인자 방식 (--config 미지원)
-            # run_tokenflow_pnp.py : --config yaml 방식 (OmegaConf)
-            #
-            # ★ 핵심 제약: preprocess.py 내부에서 os.path.basename(data_path) 를 사용해
-            #   data/{basename}/{i:05d}.jpg 형태로 프레임을 로드한다.
-            #   따라서 절대 경로를 넘기면 data/frames/ 같은 경로가 되어 FileNotFoundError 발생.
-            #   → TOKENFLOW_DIR/data/tf_{uid}/ 에 프레임을 .jpg 로 복사하고,
-            #     상대 경로 "data/tf_{uid}" 를 인자로 전달한다.
-
             uid = uuid.uuid4().hex[:8]
-            # rel_data : preprocess.py 내부에서 basename()이 적용되므로
-            #   depth-1 경로("data/tf_{uid}")의 basename = "tf_{uid}" 가 된다.
-            #   스크립트는 data/tf_{uid}/{i:05d}.jpg 를 찾으므로 정상.
-            # rel_output: run_tokenflow_pnp.py 가 basename() 을 적용할 수도 있으므로
-            #   슬래시 없는 단일 이름으로 설정해 basename() 여부와 무관하게 동일 폴더가 되도록 한다.
-            rel_data   = f"data/tf_{uid}"    # basename → "tf_{uid}" → data/tf_{uid}/ 정상
-            rel_output = f"tf_{uid}_out"     # basename → "tf_{uid}_out" → TOKENFLOW_DIR 바로 아래
+            rel_data   = f"data/tf_{uid}"
+            # [문제 2 수정] 프롬프트를 경로 안전 문자열로 정제한 뒤 rel_output에 사용
+            safe_prompt = _sanitize_for_path(prompt)
+            rel_output = f"tf_{uid}_out_{safe_prompt}"
 
-            tf_data_dir   = os.path.join(TOKENFLOW_DIR, rel_data)
-            # tf_output_dir 은 미리 생성하지 않는다.
-            # run_tokenflow_pnp.py 가 output_path 뒤에 _pnp_SD_*/uid/prompt/... 를 덧붙여
-            # 실제 디렉터리를 직접 생성하므로, TOKENFLOW_DIR 내에서 rel_output 접두어로
-            # glob 하여 실제 위치를 찾는다.
+            tf_data_dir = os.path.join(TOKENFLOW_DIR, rel_data)
             os.makedirs(tf_data_dir, exist_ok=True)
 
             try:
                 # ── 프레임 복사 (PNG → JPG) ────────────────────────────
-                # preprocess.py 는 {i:05d}.jpg 패턴으로 로드하므로 반드시 .jpg 확장자
-                import cv2
                 src_frames = sorted([
                     os.path.join(frames_dir, f)
                     for f in os.listdir(frames_dir)
@@ -340,23 +395,30 @@ class TokenFlowEditor:
                 )
 
                 # ── Step 1: preprocess.py (argparse 개별 인자) ───────────
-                # --data_path / --save_dir 모두 상대 경로로 전달 (cwd=TOKENFLOW_DIR)
                 logger.info(
                     f"[TokenFlow] Step1 preprocess 시작 "
                     f"(n_timesteps={N_TIMESTEPS}, sd={SD_VERSION}, "
                     f"n_frames={n_frames}, device={self.device})"
                 )
+
+                preprocess_cmd = [
+                    sys.executable, preprocess_script,
+                    "--data_path",        rel_data,
+                    "--save_dir",         rel_data,
+                    "--sd_version",       SD_VERSION,
+                    "--steps",            str(N_TIMESTEPS),
+                    "--batch_size",       str(BATCH_SIZE),
+                    "--inversion_prompt", source_prompt or prompt,
+                ]
+
+                # [문제 7 수정] preprocess.py가 --n_frames를 지원할 때만 추가
+                if self._supports_n_frames:
+                    preprocess_cmd += ["--n_frames", str(n_frames)]
+                else:
+                    logger.info("[TokenFlow] --n_frames 인자 생략 (미지원 버전)")
+
                 r1 = subprocess.run(
-                    [
-                        sys.executable, preprocess_script,
-                        "--data_path",        rel_data,
-                        "--save_dir",         rel_data,   # latents → rel_data/latents/
-                        "--sd_version",       SD_VERSION,
-                        "--steps",            str(N_TIMESTEPS),
-                        "--batch_size",       str(BATCH_SIZE),
-                        "--n_frames",         str(n_frames),
-                        "--inversion_prompt", source_prompt or prompt,
-                    ],
+                    preprocess_cmd,
                     capture_output=True, text=True,
                     cwd=TOKENFLOW_DIR,
                 )
@@ -374,7 +436,6 @@ class TokenFlowEditor:
                     return []
 
                 # ── Step 2: run_tokenflow_pnp.py (--config yaml) ─────────
-                # data_path / output_path 도 TOKENFLOW_DIR 기준 상대 경로
                 cfg_path = os.path.join(TOKENFLOW_DIR, f"cfg_tf_{uid}.yaml")
                 tokenflow_cfg = {
                     "data_path":         rel_data,
@@ -390,9 +451,6 @@ class TokenFlowEditor:
                     "batch_size":        BATCH_SIZE,
                     "guidance_scale":    7.5,
                     "seed":              42,
-                    # PnP (Plug-and-Play) 주입 임계값
-                    # pnp_attn_t: 전체 timestep 중 몇 % 까지 attention feature 를 원본에서 주입할지
-                    # pnp_f_t   : 전체 timestep 중 몇 % 까지 spatial feature 를 원본에서 주입할지
                     "pnp_attn_t":        0.5,
                     "pnp_f_t":           0.8,
                     "device":            self.device,
@@ -425,9 +483,8 @@ class TokenFlowEditor:
                     return []
 
                 # ── 출력 프레임 수집 → edited_dir 로 복사 ────────────────
-                # run_tokenflow_pnp.py 는 output_path 에 _pnp_SD_*/uid/prompt/... 를
-                # 자동으로 덧붙여 저장하므로, rel_output 접두어를 가진 모든 디렉터리를
-                # 재귀 탐색하여 이미지를 수집한다.
+                # [문제 2 수정] safe_prompt로 정제된 rel_output 접두어로 glob
+                # → 프롬프트 특수문자로 인한 경로 깨짐 방지
                 os.makedirs(edited_dir, exist_ok=True)
                 import glob as _glob
                 raw_edited: List[str] = sorted(
@@ -437,6 +494,13 @@ class TokenFlowEditor:
                     )
                     if os.path.isfile(f) and f.lower().endswith((".png", ".jpg", ".jpeg"))
                 )
+
+                if not raw_edited:
+                    logger.error(
+                        f"[TokenFlow] 출력 프레임 없음 — glob 경로: "
+                        f"{os.path.join(TOKENFLOW_DIR, rel_output + '*')}"
+                    )
+                    return []
 
                 edited: List[str] = []
                 for i, src in enumerate(raw_edited):
@@ -449,18 +513,8 @@ class TokenFlowEditor:
                 return edited
 
             finally:
-                # ── 임시 디렉터리 정리 ─────────────────────────────────
-                # tf_data_dir 외에 run_tokenflow_pnp.py 가 생성한 rel_output 접두어
-                # 디렉터리도 모두 제거한다.
-                import glob as _glob
-                for tmp_path in [tf_data_dir] + _glob.glob(
-                    os.path.join(TOKENFLOW_DIR, f"{rel_output}*")
-                ):
-                    if os.path.exists(tmp_path):
-                        shutil.rmtree(tmp_path, ignore_errors=True)
-                cfg_file = os.path.join(TOKENFLOW_DIR, f"cfg_tf_{uid}.yaml")
-                if os.path.exists(cfg_file):
-                    os.remove(cfg_file)
+                # [문제 6 수정] 전용 함수로 분리하여 subprocess 비정상 종료 시에도 확실히 정리
+                _cleanup_tokenflow_dirs(uid, rel_output)
 
         except Exception as e:
             logger.error(f"[TokenFlow._run_tokenflow] 예외 발생: {e}", exc_info=True)
@@ -479,8 +533,6 @@ class TokenFlowEditor:
         if not frame_paths:
             return
 
-        # ── ffmpeg 경로 ────────────────────────────────────────
-        # 프레임이 0-padded 숫자 파일명(%05d.png)이면 ffmpeg의 image2 demuxer 사용
         first = os.path.basename(frame_paths[0])
         frames_dir = os.path.dirname(frame_paths[0])
         name_part, ext = os.path.splitext(first)

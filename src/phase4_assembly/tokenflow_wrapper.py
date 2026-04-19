@@ -208,8 +208,6 @@ class TokenFlowEditor:
         import torch
         self.device = device or ("cuda" if torch.cuda.is_available() else "cpu")
         self._ready = False
-        # [문제 7 수정] preprocess.py --n_frames 지원 여부 캐시
-        self._supports_n_frames: Optional[bool] = None
 
     # ─────────────────────────────────────────
     # Public API
@@ -288,15 +286,6 @@ class TokenFlowEditor:
         # 이미 clone된 상태에서도 패치가 적용되도록 매번 호출
         # (revision="fp16" 제거 — 이미 제거된 경우 re.sub이 no-op)
         _patch_tokenflow()
-
-        # [문제 7 수정] --n_frames 지원 여부 사전 확인
-        self._supports_n_frames = _check_preprocess_args()
-        if not self._supports_n_frames:
-            logger.warning(
-                "[TokenFlow] preprocess.py가 --n_frames 인자를 지원하지 않습니다. "
-                "해당 인자를 건너뜁니다."
-            )
-
         self._ready = True
 
     def _extract_frames(
@@ -304,11 +293,45 @@ class TokenFlowEditor:
     ) -> tuple:
         """원본 영상에서 EXTRACT_FPS fps로 프레임 추출.
 
+        원본 fps가 EXTRACT_FPS보다 낮은 경우 (예: MSR-VTT 3fps 영상),
+        ffmpeg로 먼저 30fps로 보간한 뒤 추출한다.
+        → 원본 fps 그대로 추출하면 프레임 수가 너무 적어 TokenFlow 품질 저하.
+
         Returns:
             (orig_fps, sorted frame path list)
         """
+        # 원본 fps 먼저 확인
         cap = cv2.VideoCapture(video_path)
         orig_fps = cap.get(cv2.CAP_PROP_FPS) or 30.0
+        cap.release()
+
+        # 원본 fps가 EXTRACT_FPS보다 낮으면 ffmpeg로 30fps 보간 후 추출
+        actual_video_path = video_path
+        if orig_fps < EXTRACT_FPS:
+            logger.info(
+                f"[TokenFlow._extract_frames] 원본 fps={orig_fps:.1f} < EXTRACT_FPS={EXTRACT_FPS} "
+                f"→ ffmpeg로 30fps 보간 후 추출"
+            )
+            upsampled_path = os.path.join(out_dir, "_upsampled.mp4")
+            r = subprocess.run(
+                [
+                    "ffmpeg", "-y", "-i", video_path,
+                    "-vf", "fps=30",
+                    "-c:v", "libx264", "-preset", "ultrafast",
+                    "-an", "-loglevel", "error",
+                    upsampled_path,
+                ],
+                capture_output=True,
+            )
+            if r.returncode == 0 and os.path.exists(upsampled_path):
+                actual_video_path = upsampled_path
+                orig_fps = 30.0
+                logger.info("[TokenFlow._extract_frames] 보간 완료 → 30fps")
+            else:
+                logger.warning("[TokenFlow._extract_frames] ffmpeg 보간 실패 — 원본 fps로 진행")
+
+        cap = cv2.VideoCapture(actual_video_path)
+        orig_fps = cap.get(cv2.CAP_PROP_FPS) or orig_fps
         total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
 
         # 몇 프레임마다 1개 추출할지 계산
@@ -415,14 +438,9 @@ class TokenFlowEditor:
                     "--sd_version",       SD_VERSION,
                     "--steps",            str(N_TIMESTEPS),
                     "--batch_size",       str(BATCH_SIZE),
+                    "--n_frames",         str(n_frames),
                     "--inversion_prompt", source_prompt or prompt,
                 ]
-
-                # [문제 7 수정] preprocess.py가 --n_frames를 지원할 때만 추가
-                if self._supports_n_frames:
-                    preprocess_cmd += ["--n_frames", str(n_frames)]
-                else:
-                    logger.info("[TokenFlow] --n_frames 인자 생략 (미지원 버전)")
 
                 r1 = subprocess.run(
                     preprocess_cmd,

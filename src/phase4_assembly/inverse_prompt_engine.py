@@ -609,15 +609,31 @@ class InversePromptEngine:
     def _apply_tokenflow(
         self, video_path: str, prompt: str, output_path: str
     ) -> Dict[str, Any]:
-        """TokenFlow 기반 video-to-video 변환
+        """TokenFlow / SD img2img 자동 분기 변환
 
-        extract_fps=8, keyframe_freq=10, n_timesteps=50, batch_size=8 고정.
-        5초 클립 기준 약 30~60초 소요 (T4).
+        원본 영상 fps에 따라 백엔드를 자동 선택한다:
+        - fps > 3.0: TokenFlow (시간적 일관성 우수)
+        - fps <= 3.0: SD img2img (저fps 영상에서 TokenFlow보다 품질 나음)
+
+        SD img2img 프롬프트 형식:
+          "subject, style keyword, mood keyword"
+          예: "a dog running in a park, oil painting, warm tones"
+          ※ 지시어("Transform...", "Change...") 사용 금지 — SD가 인식 못함
         """
         try:
-            from .tokenflow_wrapper import TokenFlowEditor
+            from .tokenflow_wrapper import TokenFlowEditor, FPS_THRESHOLD
+            import cv2 as _cv2
 
-            logger.info(f"[TokenFlow] 변환 시작: {video_path}")
+            # fps 확인
+            _cap = _cv2.VideoCapture(video_path)
+            _fps = _cap.get(_cv2.CAP_PROP_FPS) or 30.0
+            _cap.release()
+
+            backend_used = "img2img" if _fps <= FPS_THRESHOLD else "tokenflow"
+            logger.info(
+                f"[TokenFlow] 변환 시작: {video_path} "
+                f"(fps={_fps:.1f} → 백엔드={backend_used})"
+            )
             logger.info(f"[TokenFlow] 프롬프트: {prompt[:120]}")
 
             editor = TokenFlowEditor()
@@ -629,14 +645,14 @@ class InversePromptEngine:
 
             success = result_path == output_path and os.path.exists(output_path)
             if success:
-                logger.info(f"[TokenFlow] 변환 완료: {output_path}")
+                logger.info(f"[TokenFlow] 변환 완료: {output_path} (backend={backend_used})")
                 self._backup_to_drive(output_path, "transformed")
             else:
                 logger.warning("[TokenFlow] 실패 — 원본 반환")
 
             return {
                 "output_path": result_path,
-                "backend": "tokenflow",
+                "backend": backend_used,
                 "quality_score": 0.75 if success else 0.0,
                 "success": success,
             }

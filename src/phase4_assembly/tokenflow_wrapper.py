@@ -42,6 +42,7 @@ import yaml
 from typing import Optional, List
 
 import cv2
+import numpy as np
 
 logger = logging.getLogger(__name__)
 
@@ -50,6 +51,14 @@ EXTRACT_FPS    = 4
 KEYFRAME_FREQ  = 4
 N_TIMESTEPS    = 30
 BATCH_SIZE     = 8
+
+# fps 분기 기준: 이 값 이하면 img2img, 초과하면 TokenFlow
+FPS_THRESHOLD  = 3.0
+
+# img2img 설정
+IMG2IMG_STRENGTH      = 0.3   # 원본 유지 비율 (낮을수록 원본 유지)
+IMG2IMG_GUIDANCE_SCALE = 12.5  # 프롬프트 충실도
+IMG2IMG_SEED          = 42    # 시간적 일관성을 위한 고정 seed
 
 # TokenFlow 레포 경로 (Colab 기준)
 TOKENFLOW_DIR  = "/content/TokenFlow"
@@ -220,6 +229,10 @@ class TokenFlowEditor:
     ) -> str:
         """영상을 프롬프트대로 변환.
 
+        원본 fps에 따라 백엔드를 자동 선택한다:
+        - fps > FPS_THRESHOLD (3.0): TokenFlow (시간적 일관성 우수)
+        - fps <= FPS_THRESHOLD (3.0): SD img2img (3fps 저품질 영상에서 TokenFlow보다 나음)
+
         Args:
             video_path:    원본 영상 (.mp4)
             prompt:        목표 스타일 프롬프트 (영어)
@@ -229,6 +242,22 @@ class TokenFlowEditor:
         Returns:
             output_path (성공) 또는 video_path (실패 시 원본 반환)
         """
+        # 원본 fps 확인 후 백엔드 자동 선택
+        cap = cv2.VideoCapture(video_path)
+        orig_fps = cap.get(cv2.CAP_PROP_FPS) or 30.0
+        cap.release()
+
+        if orig_fps <= FPS_THRESHOLD:
+            logger.info(
+                f"[TokenFlow] 원본 fps={orig_fps:.1f} <= FPS_THRESHOLD={FPS_THRESHOLD} "
+                f"→ SD img2img 백엔드 사용"
+            )
+            return self._edit_img2img(video_path, prompt, output_path)
+
+        logger.info(
+            f"[TokenFlow] 원본 fps={orig_fps:.1f} > FPS_THRESHOLD={FPS_THRESHOLD} "
+            f"→ TokenFlow 백엔드 사용"
+        )
         self._ensure_ready()
 
         with tempfile.TemporaryDirectory() as tmp:
@@ -267,6 +296,129 @@ class TokenFlowEditor:
 
         logger.info(f"[TokenFlow] 완료: {output_path}")
         return output_path
+
+    def _edit_img2img(
+        self,
+        video_path: str,
+        prompt: str,
+        output_path: str,
+    ) -> str:
+        """SD img2img 기반 video-to-video 변환.
+
+        fps가 낮은 영상 (3fps 이하) 에서 TokenFlow보다 나은 품질을 제공.
+        각 프레임을 독립적으로 변환하되 seed를 고정해서 시간적 일관성을 부분 확보.
+
+        프롬프트 형식: "subject description, style keyword, mood keyword"
+        예: "a dog running in a park, oil painting, warm tones"
+
+        Args:
+            video_path: 원본 영상
+            prompt:     스타일 변환 프롬프트 (스타일 키워드 위주로 짧게)
+            output_path: 출력 영상 경로
+
+        Returns:
+            output_path (성공) 또는 video_path (실패 시 원본 반환)
+        """
+        try:
+            import torch
+            from diffusers import StableDiffusionImg2ImgPipeline
+            from PIL import Image
+
+            logger.info(f"[img2img] 변환 시작: {video_path}")
+            logger.info(f"[img2img] 프롬프트: {prompt[:100]}")
+
+            # SD img2img 파이프라인 로드 (최초 1회 후 캐시)
+            if not hasattr(self, "_img2img_pipe") or self._img2img_pipe is None:
+                logger.info("[img2img] StableDiffusionImg2ImgPipeline 로드 중...")
+                self._img2img_pipe = StableDiffusionImg2ImgPipeline.from_pretrained(
+                    "runwayml/stable-diffusion-v1-5",
+                    torch_dtype=torch.float16,
+                ).to(self.device)
+                logger.info("[img2img] 파이프라인 로드 완료")
+
+            pipe = self._img2img_pipe
+
+            # 프레임 추출
+            cap = cv2.VideoCapture(video_path)
+            orig_fps = cap.get(cv2.CAP_PROP_FPS) or 3.0
+            frames = []
+            while True:
+                ret, frame = cap.read()
+                if not ret:
+                    break
+                frames.append(frame)
+            cap.release()
+
+            if not frames:
+                logger.error("[img2img] 프레임 추출 실패 — 원본 반환")
+                return video_path
+
+            logger.info(f"[img2img] {len(frames)}프레임 변환 시작 (strength={IMG2IMG_STRENGTH})")
+
+            # 각 프레임 변환
+            edited_frames = []
+            generator = torch.Generator(self.device).manual_seed(IMG2IMG_SEED)
+
+            for i, frame in enumerate(frames):
+                frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+                h, w = frame_rgb.shape[:2]
+                # SD는 512x512 or 768x768 권장
+                pil_image = Image.fromarray(frame_rgb).resize((512, 512))
+
+                result = pipe(
+                    prompt=prompt,
+                    image=pil_image,
+                    strength=IMG2IMG_STRENGTH,
+                    guidance_scale=IMG2IMG_GUIDANCE_SCALE,
+                    generator=generator,
+                ).images[0]
+
+                # 원본 해상도로 복원
+                result_resized = result.resize((w, h))
+                edited_frames.append(cv2.cvtColor(
+                    np.array(result_resized), cv2.COLOR_RGB2BGR
+                ))
+
+                if (i + 1) % 5 == 0:
+                    logger.info(f"[img2img] {i + 1}/{len(frames)} 프레임 완료")
+
+            logger.info(f"[img2img] 전체 {len(edited_frames)}프레임 변환 완료")
+
+            # 영상 재조립
+            os.makedirs(os.path.dirname(output_path) or ".", exist_ok=True)
+            if edited_frames:
+                fh, fw = edited_frames[0].shape[:2]
+                # ffmpeg로 재조립
+                with tempfile.TemporaryDirectory() as tmp:
+                    for idx, frm in enumerate(edited_frames):
+                        cv2.imwrite(os.path.join(tmp, f"{idx:05d}.png"), frm)
+                    r = subprocess.run(
+                        [
+                            "ffmpeg", "-y",
+                            "-framerate", str(orig_fps),
+                            "-i", os.path.join(tmp, "%05d.png"),
+                            "-c:v", "libx264", "-preset", "ultrafast",
+                            "-pix_fmt", "yuv420p", "-an",
+                            "-loglevel", "error",
+                            output_path,
+                        ],
+                        capture_output=True,
+                    )
+                    if r.returncode != 0:
+                        # OpenCV 폴백
+                        logger.warning("[img2img] ffmpeg 실패 → OpenCV 폴백")
+                        fourcc = cv2.VideoWriter_fourcc(*"mp4v")
+                        writer = cv2.VideoWriter(output_path, fourcc, orig_fps, (fw, fh))
+                        for frm in edited_frames:
+                            writer.write(frm)
+                        writer.release()
+
+            logger.info(f"[img2img] 완료: {output_path}")
+            return output_path
+
+        except Exception as e:
+            logger.error(f"[img2img] 예외 발생: {e}", exc_info=True)
+            return video_path
 
     # ─────────────────────────────────────────
     # 내부 메서드

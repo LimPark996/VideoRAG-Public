@@ -155,11 +155,9 @@ def _cleanup_tokenflow_dirs(uid: str, rel_output: str):
     if os.path.exists(tf_data_dir):
         targets.append(tf_data_dir)
 
-    # run_tokenflow_pnp.py 출력 폴더 (접두어 glob)
-    for path in _glob.glob(os.path.join(TOKENFLOW_DIR, f"{rel_output}*")):
-        targets.append(path)
-
     # yaml config 파일
+    # ★ 출력 폴더(rel_output*)는 프레임 수집 완료 후 별도로 정리하므로 여기서 지우지 않음
+    # → finally에서 지우면 프레임 수집 전에 삭제되어 img_ode를 못 찾는 문제 발생
     cfg_file = os.path.join(TOKENFLOW_DIR, f"cfg_tf_{uid}.yaml")
     if os.path.exists(cfg_file):
         targets.append(cfg_file)
@@ -288,14 +286,102 @@ class TokenFlowEditor:
         _patch_tokenflow()
         self._ready = True
 
+    def _rife_interpolate(self, video_path: str, out_dir: str, target_fps: float = 24.0) -> str:
+        """RIFE (Real-Time Intermediate Flow Estimation) 광학 흐름 기반 프레임 보간.
+
+        원본 fps가 낮은 영상 (예: MSR-VTT 3fps) 을 target_fps 로 보간한다.
+        ffmpeg 단순 보간과 달리 프레임 사이의 움직임 벡터를 추정해서
+        중간 프레임을 자연스럽게 생성한다.
+
+        RIFE 설치: pip install rife-ncnn-vulkan 또는 IFNet 기반 구현 사용.
+        여기서는 pytorch_rife (IFNet) 를 subprocess로 호출한다.
+
+        Returns:
+            보간된 영상 경로 (성공), 또는 원본 video_path (실패 시 폴백)
+        """
+        try:
+            # RIFE 설치 확인 및 자동 설치
+            rife_dir = "/content/ECCV2022-RIFE"
+            if not os.path.exists(rife_dir):
+                logger.info("[RIFE] 레포 클론 중...")
+                r = subprocess.run(
+                    ["git", "clone", "https://github.com/megvii-research/ECCV2022-RIFE.git", rife_dir],
+                    capture_output=True, text=True,
+                )
+                if r.returncode != 0:
+                    logger.warning(f"[RIFE] git clone 실패 → 원본 fps로 진행: {r.stderr[:200]}")
+                    return video_path
+
+                # 가중치 다운로드
+                model_dir = os.path.join(rife_dir, "train_log")
+                os.makedirs(model_dir, exist_ok=True)
+                weight_url = "https://github.com/hzwer/ECCV2022-RIFE/releases/download/v4.6/flownet.pkl"
+                weight_path = os.path.join(model_dir, "flownet.pkl")
+                if not os.path.exists(weight_path):
+                    logger.info("[RIFE] 가중치 다운로드 중...")
+                    r2 = subprocess.run(
+                        ["wget", "-q", "-O", weight_path, weight_url],
+                        capture_output=True,
+                    )
+                    if r2.returncode != 0:
+                        logger.warning("[RIFE] 가중치 다운로드 실패 → 원본 fps로 진행")
+                        return video_path
+
+            # 원본 fps 확인
+            cap = cv2.VideoCapture(video_path)
+            orig_fps = cap.get(cv2.CAP_PROP_FPS) or 3.0
+            cap.release()
+
+            # 몇 배 보간할지 계산
+            # RIFE는 2의 거듭제곱 배수로만 보간 가능 (2x, 4x, 8x, ...)
+            # target_fps에 도달하거나 넘는 최소 2^n 배수를 선택
+            import math
+            multiplier = 1
+            while orig_fps * multiplier < target_fps:
+                multiplier *= 2
+
+            if multiplier == 1:
+                logger.info(f"[RIFE] 원본 fps={orig_fps:.1f} >= target_fps={target_fps:.1f} → 보간 불필요")
+                return video_path
+
+            logger.info(
+                f"[RIFE] 보간 시작: {orig_fps:.1f}fps × {multiplier} → "
+                f"{orig_fps * multiplier:.1f}fps (target={target_fps:.1f}fps)"
+            )
+
+            interpolated_path = os.path.join(out_dir, "_rife_interpolated.mp4")
+
+            r3 = subprocess.run(
+                [
+                    "python3", os.path.join(rife_dir, "inference_video.py"),
+                    "--exp", str(int(math.log2(multiplier))),  # 2^exp = multiplier
+                    "--video", video_path,
+                    "--output", interpolated_path,
+                ],
+                capture_output=True, text=True,
+                cwd=rife_dir,
+            )
+
+            if r3.returncode != 0 or not os.path.exists(interpolated_path):
+                logger.warning(f"[RIFE] 보간 실패 → 원본 fps로 진행: {r3.stderr[:300]}")
+                return video_path
+
+            logger.info(f"[RIFE] 보간 완료: {interpolated_path} ({orig_fps:.1f}fps → {orig_fps * multiplier:.1f}fps)")
+            return interpolated_path
+
+        except Exception as e:
+            logger.warning(f"[RIFE] 예외 발생 → 원본 fps로 진행: {e}")
+            return video_path
+
     def _extract_frames(
         self, video_path: str, out_dir: str
     ) -> tuple:
         """원본 영상에서 EXTRACT_FPS fps로 프레임 추출.
 
         원본 fps가 EXTRACT_FPS보다 낮은 경우 (예: MSR-VTT 3fps 영상),
-        ffmpeg로 먼저 30fps로 보간한 뒤 추출한다.
-        → 원본 fps 그대로 추출하면 프레임 수가 너무 적어 TokenFlow 품질 저하.
+        RIFE 광학 흐름 보간으로 먼저 fps를 높인 뒤 추출한다.
+        ffmpeg 단순 보간 (픽셀 평균) 과 달리 움직임 벡터를 추정해서
+        자연스러운 중간 프레임을 생성하므로 TokenFlow 품질이 향상된다.
 
         Returns:
             (orig_fps, sorted frame path list)
@@ -303,11 +389,21 @@ class TokenFlowEditor:
         # 원본 fps 확인
         cap = cv2.VideoCapture(video_path)
         orig_fps = cap.get(cv2.CAP_PROP_FPS) or 30.0
+        cap.release()
+
+        # 원본 fps가 EXTRACT_FPS보다 낮으면 RIFE로 보간
+        actual_video_path = video_path
+        if orig_fps < EXTRACT_FPS:
+            logger.info(
+                f"[TokenFlow._extract_frames] 원본 fps={orig_fps:.1f} < EXTRACT_FPS={EXTRACT_FPS} "
+                f"→ RIFE 광학 흐름 보간 시도"
+            )
+            actual_video_path = self._rife_interpolate(video_path, out_dir, target_fps=24.0)
+
+        cap = cv2.VideoCapture(actual_video_path)
+        orig_fps = cap.get(cv2.CAP_PROP_FPS) or orig_fps
         total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
 
-        # 원본 fps가 EXTRACT_FPS보다 낮으면 원본 fps 그대로 사용
-        # ffmpeg 보간(가짜 프레임 생성)은 TokenFlow 품질을 오히려 낮추므로 사용하지 않음
-        # → 3fps 7초 영상 = 21개 진짜 프레임이 30fps 보간 후 추출한 27개 가짜 프레임보다 나음
         effective_fps = min(EXTRACT_FPS, orig_fps)
         step = max(1, round(orig_fps / effective_fps))
         logger.info(
@@ -390,6 +486,32 @@ class TokenFlowEditor:
                     logger.error(f"[TokenFlow] frames_dir 에 이미지 없음: {frames_dir}")
                     return []
 
+                # batch_size를 n_frames의 약수 중 BATCH_SIZE 이하 최댓값으로 조정
+                # TokenFlow 내부에서 n_frames % batch_size != 0 이면 자동으로 프레임을 잘라버림
+                # → batch_size를 n_frames에 맞게 줄이면 프레임 손실 없이 전부 처리 가능
+                #
+                # 예: n_frames=21, BATCH_SIZE=8
+                #   21의 약수: 1, 3, 7, 21 → 8 이하 최댓값 = 7
+                #   batch_size=7 로 설정하면 21 ÷ 7 = 3배치, 프레임 손실 없음
+                #
+                # 예: n_frames=27, BATCH_SIZE=8
+                #   27의 약수: 1, 3, 9, 27 → 8 이하 최댓값 = 3
+                #   batch_size=3 으로 설정하면 27 ÷ 3 = 9배치, 프레임 손실 없음
+                def _best_batch_size(n: int, max_bs: int) -> int:
+                    """n의 약수 중 max_bs 이하 최댓값 반환"""
+                    best = 1
+                    for d in range(1, max_bs + 1):
+                        if n % d == 0:
+                            best = d
+                    return best
+
+                effective_batch_size = _best_batch_size(n_frames, BATCH_SIZE)
+                if effective_batch_size != BATCH_SIZE:
+                    logger.info(
+                        f"[TokenFlow] batch_size {BATCH_SIZE} → {effective_batch_size} "
+                        f"(n_frames={n_frames}의 약수 중 {BATCH_SIZE} 이하 최댓값, 프레임 손실 없음)"
+                    )
+
                 for idx, src in enumerate(src_frames):
                     dst = os.path.join(tf_data_dir, f"{idx:05d}.jpg")
                     img = cv2.imread(src)
@@ -416,7 +538,7 @@ class TokenFlowEditor:
                     "--sd_version",       SD_VERSION,
                     "--steps",            str(N_TIMESTEPS),
                     "--save_steps",       str(N_TIMESTEPS),  # run_tokenflow_pnp의 n_timesteps와 동일하게 맞춤
-                    "--batch_size",       str(BATCH_SIZE),   # → 같은 timestep 목록으로 latent 저장/요청 일치
+                    "--batch_size",       str(effective_batch_size),
                     "--n_frames",         str(n_frames),
                     "--inversion_prompt", source_prompt or prompt,
                 ]
@@ -452,7 +574,7 @@ class TokenFlowEditor:
                     "n_frames":          n_frames,
                     "latents_path":      rel_data,
                     "keyframe_freq":     KEYFRAME_FREQ,
-                    "batch_size":        BATCH_SIZE,
+                    "batch_size":        effective_batch_size,
                     "guidance_scale":    7.5,
                     "seed":              42,
                     "pnp_attn_t":        0.5,
@@ -531,10 +653,18 @@ class TokenFlowEditor:
                     edited.append(dst)
 
                 logger.info(f"[TokenFlow._run_tokenflow] 편집 완료: {len(edited)}프레임")
+
+                # 프레임 수집 완료 후 출력 폴더 정리
+                # (finally에서 지우면 수집 전에 삭제되므로 여기서 직접 정리)
+                import glob as _glob2
+                for out_dir in _glob2.glob(os.path.join(TOKENFLOW_DIR, f"{rel_output}*")):
+                    shutil.rmtree(out_dir, ignore_errors=True)
+
                 return edited
 
             finally:
-                # [문제 6 수정] 전용 함수로 분리하여 subprocess 비정상 종료 시에도 확실히 정리
+                # 입력 폴더(data/tf_*)와 yaml config만 정리
+                # 출력 폴더는 프레임 수집 완료 후 위에서 이미 정리됨
                 _cleanup_tokenflow_dirs(uid, rel_output)
 
         except Exception as e:

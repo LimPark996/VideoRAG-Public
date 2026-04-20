@@ -509,22 +509,32 @@ class TokenFlowEditor:
                     return []
 
                 # ── 출력 프레임 수집 → edited_dir 로 복사 ────────────────
-                # [문제 2 수정] safe_prompt로 정제된 rel_output 접두어로 glob
-                # → 프롬프트 특수문자로 인한 경로 깨짐 방지
+                # run_tokenflow_pnp.py는 편집된 프레임을 img_ode/ 폴더에만 저장한다.
+                # fps_10/, fps_20/, fps_30/ 은 mp4 파일이므로 프레임 탐색 대상에서 제외.
+                # ** 재귀 탐색을 쓰면 중복 수집으로 프레임이 뻥튀기되어 영상이 반복됨.
                 os.makedirs(edited_dir, exist_ok=True)
                 import glob as _glob
-                raw_edited: List[str] = sorted(
-                    f for f in _glob.glob(
-                        os.path.join(TOKENFLOW_DIR, f"{rel_output}*", "**", "*"),
-                        recursive=True,
-                    )
-                    if os.path.isfile(f) and f.lower().endswith((".png", ".jpg", ".jpeg"))
-                )
+
+                # rel_output 접두어로 시작하는 출력 폴더를 찾은 뒤 img_ode/ 만 탐색
+                output_dirs = _glob.glob(os.path.join(TOKENFLOW_DIR, f"{rel_output}*"))
+                raw_edited: List[str] = []
+                for od in output_dirs:
+                    img_ode_dir = os.path.join(od, "img_ode")
+                    if os.path.isdir(img_ode_dir):
+                        raw_edited = sorted(
+                            f for f in _glob.glob(os.path.join(img_ode_dir, "*"))
+                            if os.path.isfile(f) and f.lower().endswith((".png", ".jpg", ".jpeg"))
+                        )
+                        if raw_edited:
+                            logger.info(
+                                f"[TokenFlow] 출력 프레임 수집: {img_ode_dir} ({len(raw_edited)}개)"
+                            )
+                            break
 
                 if not raw_edited:
                     logger.error(
-                        f"[TokenFlow] 출력 프레임 없음 — glob 경로: "
-                        f"{os.path.join(TOKENFLOW_DIR, rel_output + '*')}"
+                        f"[TokenFlow] 출력 프레임 없음 — img_ode 탐색 경로: "
+                        f"{os.path.join(TOKENFLOW_DIR, rel_output + '*')}/img_ode/"
                     )
                     return []
 

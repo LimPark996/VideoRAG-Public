@@ -437,7 +437,8 @@ class TokenFlowEditor:
                     "--save_dir",         rel_data,
                     "--sd_version",       SD_VERSION,
                     "--steps",            str(N_TIMESTEPS),
-                    "--batch_size",       str(BATCH_SIZE),
+                    "--save_steps",       str(N_TIMESTEPS),  # run_tokenflow_pnp의 n_timesteps와 동일하게 맞춤
+                    "--batch_size",       str(BATCH_SIZE),   # → 같은 timestep 목록으로 latent 저장/요청 일치
                     "--n_frames",         str(n_frames),
                     "--inversion_prompt", source_prompt or prompt,
                 ]

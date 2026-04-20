@@ -300,42 +300,20 @@ class TokenFlowEditor:
         Returns:
             (orig_fps, sorted frame path list)
         """
-        # 원본 fps 먼저 확인
+        # 원본 fps 확인
         cap = cv2.VideoCapture(video_path)
         orig_fps = cap.get(cv2.CAP_PROP_FPS) or 30.0
-        cap.release()
-
-        # 원본 fps가 EXTRACT_FPS보다 낮으면 ffmpeg로 30fps 보간 후 추출
-        actual_video_path = video_path
-        if orig_fps < EXTRACT_FPS:
-            logger.info(
-                f"[TokenFlow._extract_frames] 원본 fps={orig_fps:.1f} < EXTRACT_FPS={EXTRACT_FPS} "
-                f"→ ffmpeg로 30fps 보간 후 추출"
-            )
-            upsampled_path = os.path.join(out_dir, "_upsampled.mp4")
-            r = subprocess.run(
-                [
-                    "ffmpeg", "-y", "-i", video_path,
-                    "-vf", "fps=30",
-                    "-c:v", "libx264", "-preset", "ultrafast",
-                    "-an", "-loglevel", "error",
-                    upsampled_path,
-                ],
-                capture_output=True,
-            )
-            if r.returncode == 0 and os.path.exists(upsampled_path):
-                actual_video_path = upsampled_path
-                orig_fps = 30.0
-                logger.info("[TokenFlow._extract_frames] 보간 완료 → 30fps")
-            else:
-                logger.warning("[TokenFlow._extract_frames] ffmpeg 보간 실패 — 원본 fps로 진행")
-
-        cap = cv2.VideoCapture(actual_video_path)
-        orig_fps = cap.get(cv2.CAP_PROP_FPS) or orig_fps
         total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
 
-        # 몇 프레임마다 1개 추출할지 계산
-        step = max(1, round(orig_fps / EXTRACT_FPS))
+        # 원본 fps가 EXTRACT_FPS보다 낮으면 원본 fps 그대로 사용
+        # ffmpeg 보간(가짜 프레임 생성)은 TokenFlow 품질을 오히려 낮추므로 사용하지 않음
+        # → 3fps 7초 영상 = 21개 진짜 프레임이 30fps 보간 후 추출한 27개 가짜 프레임보다 나음
+        effective_fps = min(EXTRACT_FPS, orig_fps)
+        step = max(1, round(orig_fps / effective_fps))
+        logger.info(
+            f"[TokenFlow._extract_frames] 원본 fps={orig_fps:.1f}, "
+            f"effective_fps={effective_fps:.1f}, step={step}"
+        )
 
         saved = []
         idx = 0
@@ -515,26 +493,33 @@ class TokenFlowEditor:
                 os.makedirs(edited_dir, exist_ok=True)
                 import glob as _glob
 
-                # rel_output 접두어로 시작하는 출력 폴더를 찾은 뒤 img_ode/ 만 탐색
-                output_dirs = _glob.glob(os.path.join(TOKENFLOW_DIR, f"{rel_output}*"))
+                # run_tokenflow_pnp.py는 output_path 아래에 여러 단계의 하위 폴더를
+                # 자동으로 만들고 그 안의 img_ode/ 에 프레임을 저장한다.
+                # rel_output 접두어로 시작하는 폴더를 재귀 탐색하여 img_ode/ 를 찾는다.
                 raw_edited: List[str] = []
-                for od in output_dirs:
-                    img_ode_dir = os.path.join(od, "img_ode")
-                    if os.path.isdir(img_ode_dir):
-                        raw_edited = sorted(
-                            f for f in _glob.glob(os.path.join(img_ode_dir, "*"))
-                            if os.path.isfile(f) and f.lower().endswith((".png", ".jpg", ".jpeg"))
+                img_ode_dirs = [
+                    d for d in _glob.glob(
+                        os.path.join(TOKENFLOW_DIR, f"{rel_output}*", "**", "img_ode"),
+                        recursive=True,
+                    )
+                    if os.path.isdir(d)
+                ]
+                for img_ode_dir in img_ode_dirs:
+                    candidates = sorted(
+                        f for f in _glob.glob(os.path.join(img_ode_dir, "*"))
+                        if os.path.isfile(f) and f.lower().endswith((".png", ".jpg", ".jpeg"))
+                    )
+                    if candidates:
+                        raw_edited = candidates
+                        logger.info(
+                            f"[TokenFlow] 출력 프레임 수집: {img_ode_dir} ({len(raw_edited)}개)"
                         )
-                        if raw_edited:
-                            logger.info(
-                                f"[TokenFlow] 출력 프레임 수집: {img_ode_dir} ({len(raw_edited)}개)"
-                            )
-                            break
+                        break
 
                 if not raw_edited:
                     logger.error(
                         f"[TokenFlow] 출력 프레임 없음 — img_ode 탐색 경로: "
-                        f"{os.path.join(TOKENFLOW_DIR, rel_output + '*')}/img_ode/"
+                        f"{os.path.join(TOKENFLOW_DIR, rel_output + '*')}/**/img_ode/"
                     )
                     return []
 

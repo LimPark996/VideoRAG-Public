@@ -301,31 +301,35 @@ class TokenFlowEditor:
         """
         try:
             # RIFE 설치 확인 및 자동 설치
-            rife_dir = "/content/ECCV2022-RIFE"
+            # Practical-RIFE 사용 (ECCV2022-RIFE보다 최신, --multi 인자 지원)
+            rife_dir = "/content/Practical-RIFE"
             if not os.path.exists(rife_dir):
                 logger.info("[RIFE] 레포 클론 중...")
                 r = subprocess.run(
-                    ["git", "clone", "https://github.com/megvii-research/ECCV2022-RIFE.git", rife_dir],
+                    ["git", "clone", "https://github.com/hzwer/Practical-RIFE.git", rife_dir],
                     capture_output=True, text=True,
                 )
                 if r.returncode != 0:
                     logger.warning(f"[RIFE] git clone 실패 → 원본 fps로 진행: {r.stderr[:200]}")
                     return video_path
 
-                # 가중치 다운로드
-                model_dir = os.path.join(rife_dir, "train_log")
-                os.makedirs(model_dir, exist_ok=True)
-                weight_url = "https://github.com/hzwer/ECCV2022-RIFE/releases/download/v4.6/flownet.pkl"
-                weight_path = os.path.join(model_dir, "flownet.pkl")
-                if not os.path.exists(weight_path):
-                    logger.info("[RIFE] 가중치 다운로드 중...")
-                    r2 = subprocess.run(
-                        ["wget", "-q", "-O", weight_path, weight_url],
-                        capture_output=True,
-                    )
-                    if r2.returncode != 0:
-                        logger.warning("[RIFE] 가중치 다운로드 실패 → 원본 fps로 진행")
-                        return video_path
+            # 가중치 다운로드
+            # HuggingFace jbilcke-hf/varnish 에 미러된 flownet.pkl 사용
+            # (Practical-RIFE 공식 배포는 Google Drive만 제공하여 자동화 불가)
+            model_dir = os.path.join(rife_dir, "train_log")
+            os.makedirs(model_dir, exist_ok=True)
+            weight_url = "https://huggingface.co/jbilcke-hf/varnish/resolve/main/rife/flownet.pkl"
+            weight_path = os.path.join(model_dir, "flownet.pkl")
+            if not os.path.exists(weight_path):
+                logger.info("[RIFE] 가중치 다운로드 중 (HuggingFace)...")
+                r2 = subprocess.run(
+                    ["wget", "-q", "-O", weight_path, weight_url],
+                    capture_output=True,
+                )
+                if r2.returncode != 0 or os.path.getsize(weight_path) < 1000:
+                    logger.warning("[RIFE] 가중치 다운로드 실패 → 원본 fps로 진행")
+                    return video_path
+                logger.info(f"[RIFE] 가중치 다운로드 완료 ({os.path.getsize(weight_path)/1024/1024:.1f}MB)")
 
             # 원본 fps 확인
             cap = cv2.VideoCapture(video_path)
@@ -354,7 +358,7 @@ class TokenFlowEditor:
             r3 = subprocess.run(
                 [
                     "python3", os.path.join(rife_dir, "inference_video.py"),
-                    "--exp", str(int(math.log2(multiplier))),  # 2^exp = multiplier
+                    "--multi", str(multiplier),  # 2x, 4x, 8x 배수 보간
                     "--video", video_path,
                     "--output", interpolated_path,
                 ],

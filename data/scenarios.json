@@ -1,0 +1,352 @@
+[
+  {
+    "id": "s01",
+    "title": "기후변화와 한국 어촌",
+    "title_en": "Climate Change & Korean Fishing Villages",
+    "scenes": [
+      {
+        "scene_id": 1,
+        "description": "Fishing boats anchored at dawn in a calm harbor, misty morning light",
+        "description_ko": "새벽녘 항구에 정박된 어선들, 안개 낀 아침",
+        "duration_sec": 6.0,
+        "attributes": { "time_of_day": "dawn", "season": "winter", "mood": "cool", "location": "outdoor" }
+      },
+      {
+        "scene_id": 2,
+        "description": "Fishermen pulling nets on a fishing boat at sea",
+        "description_ko": "바다에서 그물을 끌어올리는 어부들",
+        "duration_sec": 5.0,
+        "attributes": { "time_of_day": "morning", "season": "winter", "mood": "dramatic", "location": "outdoor" }
+      },
+      {
+        "scene_id": 3,
+        "description": "Empty fishing village streets in the evening, weathered houses",
+        "description_ko": "저녁의 텅 빈 어촌 마을 골목, 낡은 집들",
+        "duration_sec": 5.0,
+        "attributes": { "time_of_day": "evening", "season": "winter", "mood": "dark", "location": "outdoor" }
+      },
+      {
+        "scene_id": 4,
+        "description": "Ocean waves crashing on rocky coastal cliffs",
+        "description_ko": "바위 절벽에 부서지는 파도",
+        "duration_sec": 4.0,
+        "attributes": { "time_of_day": "afternoon", "season": "winter", "mood": "dramatic", "location": "outdoor" }
+      }
+    ]
+  },
+  {
+    "id": "s02",
+    "title": "도시의 밤",
+    "title_en": "City After Dark",
+    "scenes": [
+      {
+        "scene_id": 1,
+        "description": "Busy city intersection with heavy traffic during rush hour, daytime",
+        "description_ko": "낮 러시아워의 혼잡한 도심 교차로",
+        "duration_sec": 5.0,
+        "attributes": { "time_of_day": "afternoon", "season": "summer", "mood": "neutral", "location": "outdoor" }
+      },
+      {
+        "scene_id": 2,
+        "description": "City skyline at night with neon lights blazing, electric blue and magenta signs",
+        "description_ko": "네온사인이 빛나는 도시 야경",
+        "duration_sec": 6.0,
+        "attributes": { "time_of_day": "night", "season": "summer", "mood": "dramatic", "location": "outdoor" }
+      },
+      {
+        "scene_id": 3,
+        "description": "People walking on a rainy night street, reflections on wet pavement",
+        "description_ko": "비 오는 밤 거리를 걷는 사람들, 젖은 도로의 반사",
+        "duration_sec": 5.0,
+        "attributes": { "time_of_day": "night", "season": "summer", "mood": "dark", "location": "outdoor" }
+      },
+      {
+        "scene_id": 4,
+        "description": "Aerial view of a city at night, lights spreading to the horizon",
+        "description_ko": "야간 도시 항공 뷰, 지평선까지 퍼지는 불빛",
+        "duration_sec": 5.0,
+        "attributes": { "time_of_day": "night", "season": "summer", "mood": "dramatic", "location": "outdoor" }
+      }
+    ]
+  },
+  {
+    "id": "s03",
+    "title": "아이의 하루",
+    "title_en": "A Child's Day",
+    "scenes": [
+      {
+        "scene_id": 1,
+        "description": "A child waking up in the morning, sunlight streaming through bedroom window",
+        "description_ko": "아침 햇살이 들어오는 방에서 깨어나는 아이",
+        "duration_sec": 4.0,
+        "attributes": { "time_of_day": "morning", "season": "spring", "mood": "bright", "location": "indoor" }
+      },
+      {
+        "scene_id": 2,
+        "description": "A child riding a bicycle in a sunny park, laughing",
+        "description_ko": "공원에서 자전거를 타는 아이, 웃음소리",
+        "duration_sec": 5.0,
+        "attributes": { "time_of_day": "morning", "season": "spring", "mood": "bright", "location": "outdoor" }
+      },
+      {
+        "scene_id": 3,
+        "description": "Children playing together on a playground, swings and slides",
+        "description_ko": "놀이터에서 뛰노는 아이들, 그네와 미끄럼틀",
+        "duration_sec": 5.0,
+        "attributes": { "time_of_day": "afternoon", "season": "spring", "mood": "bright", "location": "outdoor" }
+      },
+      {
+        "scene_id": 4,
+        "description": "A child reading a book under a lamp at home in the evening",
+        "description_ko": "저녁, 램프 아래서 책을 읽는 아이",
+        "duration_sec": 4.0,
+        "attributes": { "time_of_day": "evening", "season": "spring", "mood": "warm", "location": "indoor" }
+      }
+    ]
+  },
+  {
+    "id": "s04",
+    "title": "겨울 산행",
+    "title_en": "Winter Mountain Trek",
+    "scenes": [
+      {
+        "scene_id": 1,
+        "description": "Snow falling heavily in a dense winter forest, pine trees covered in white",
+        "description_ko": "울창한 겨울 숲에 눈이 내리다, 흰 눈 덮인 소나무",
+        "duration_sec": 6.0,
+        "attributes": { "time_of_day": "morning", "season": "winter", "mood": "cool", "location": "outdoor" }
+      },
+      {
+        "scene_id": 2,
+        "description": "Hikers trekking through a snowy mountain trail, breath visible in cold air",
+        "description_ko": "눈 덮인 산길을 걷는 등산객들, 차가운 공기 속 입김",
+        "duration_sec": 5.0,
+        "attributes": { "time_of_day": "morning", "season": "winter", "mood": "dramatic", "location": "outdoor" }
+      },
+      {
+        "scene_id": 3,
+        "description": "Sunrise over mountain peaks, golden rays breaking over snow-capped summits",
+        "description_ko": "설산 봉우리 위로 떠오르는 일출, 황금빛 햇살",
+        "duration_sec": 5.0,
+        "attributes": { "time_of_day": "dawn", "season": "winter", "mood": "dramatic", "location": "outdoor" }
+      },
+      {
+        "scene_id": 4,
+        "description": "Wide shot of alpine landscape, vast snowfields under clear blue sky",
+        "description_ko": "광활한 설원이 펼쳐진 고산 지대, 맑은 하늘",
+        "duration_sec": 5.0,
+        "attributes": { "time_of_day": "afternoon", "season": "winter", "mood": "bright", "location": "outdoor" }
+      }
+    ]
+  },
+  {
+    "id": "s05",
+    "title": "주방의 사람들",
+    "title_en": "People in the Kitchen",
+    "scenes": [
+      {
+        "scene_id": 1,
+        "description": "A chef preparing food in a professional restaurant kitchen, busy atmosphere",
+        "description_ko": "식당 주방에서 음식을 준비하는 셰프, 분주한 분위기",
+        "duration_sec": 5.0,
+        "attributes": { "time_of_day": "afternoon", "season": "spring", "mood": "warm", "location": "indoor" }
+      },
+      {
+        "scene_id": 2,
+        "description": "Close-up of hands chopping fresh vegetables on a wooden cutting board",
+        "description_ko": "나무 도마 위에서 채소를 써는 손 클로즈업",
+        "duration_sec": 4.0,
+        "attributes": { "time_of_day": "afternoon", "season": "spring", "mood": "warm", "location": "indoor" }
+      },
+      {
+        "scene_id": 3,
+        "description": "Family cooking together around a kitchen island, laughing and talking",
+        "description_ko": "주방 아일랜드 주변에서 함께 요리하는 가족",
+        "duration_sec": 5.0,
+        "attributes": { "time_of_day": "evening", "season": "spring", "mood": "warm", "location": "indoor" }
+      },
+      {
+        "scene_id": 4,
+        "description": "Steaming food being plated and served at a dining table",
+        "description_ko": "식탁에 김이 나는 음식이 담겨 차려지는 장면",
+        "duration_sec": 4.0,
+        "attributes": { "time_of_day": "evening", "season": "spring", "mood": "warm", "location": "indoor" }
+      }
+    ]
+  },
+  {
+    "id": "s06",
+    "title": "스포츠의 열기",
+    "title_en": "The Heat of Sport",
+    "scenes": [
+      {
+        "scene_id": 1,
+        "description": "A crowded sports stadium packed with cheering fans, aerial view",
+        "description_ko": "열띤 응원을 보내는 관중들로 가득 찬 스타디움, 항공 뷰",
+        "duration_sec": 5.0,
+        "attributes": { "time_of_day": "afternoon", "season": "summer", "mood": "dramatic", "location": "outdoor" }
+      },
+      {
+        "scene_id": 2,
+        "description": "Soccer players running and dribbling on a green football pitch",
+        "description_ko": "초록색 축구장에서 달리며 드리블하는 선수들",
+        "duration_sec": 5.0,
+        "attributes": { "time_of_day": "afternoon", "season": "summer", "mood": "dramatic", "location": "outdoor" }
+      },
+      {
+        "scene_id": 3,
+        "description": "Athletes celebrating a goal, jumping and embracing in excitement",
+        "description_ko": "골을 축하하며 점프하고 포옹하는 선수들",
+        "duration_sec": 4.0,
+        "attributes": { "time_of_day": "afternoon", "season": "summer", "mood": "bright", "location": "outdoor" }
+      },
+      {
+        "scene_id": 4,
+        "description": "Stadium crowd wave passing through cheering spectators under floodlights at night",
+        "description_ko": "야간 조명 아래 응원단 사이로 파도타기가 퍼지는 스타디움",
+        "duration_sec": 5.0,
+        "attributes": { "time_of_day": "night", "season": "summer", "mood": "dramatic", "location": "outdoor" }
+      }
+    ]
+  },
+  {
+    "id": "s07",
+    "title": "자연의 소리",
+    "title_en": "Sounds of Nature",
+    "scenes": [
+      {
+        "scene_id": 1,
+        "description": "A dog running freely along a sandy beach at sunset, waves in background",
+        "description_ko": "석양 무렵 모래사장을 자유롭게 달리는 개, 파도 소리",
+        "duration_sec": 5.0,
+        "attributes": { "time_of_day": "evening", "season": "summer", "mood": "warm", "location": "outdoor" }
+      },
+      {
+        "scene_id": 2,
+        "description": "Ocean waves crashing powerfully against jagged coastal rocks, spray rising",
+        "description_ko": "들쭉날쭉한 해안 바위에 강하게 부서지는 파도, 물보라",
+        "duration_sec": 5.0,
+        "attributes": { "time_of_day": "afternoon", "season": "autumn", "mood": "dramatic", "location": "outdoor" }
+      },
+      {
+        "scene_id": 3,
+        "description": "Birds flying over a peaceful lake at sunrise, calm water surface",
+        "description_ko": "일출 무렵 고요한 호수 위를 날아다니는 새들",
+        "duration_sec": 5.0,
+        "attributes": { "time_of_day": "dawn", "season": "spring", "mood": "bright", "location": "outdoor" }
+      },
+      {
+        "scene_id": 4,
+        "description": "Time-lapse of clouds moving over a vast green meadow",
+        "description_ko": "광활한 초록 들판 위로 구름이 흘러가는 타임랩스",
+        "duration_sec": 5.0,
+        "attributes": { "time_of_day": "afternoon", "season": "spring", "mood": "bright", "location": "outdoor" }
+      }
+    ]
+  },
+  {
+    "id": "s08",
+    "title": "새해 전야",
+    "title_en": "New Year's Eve",
+    "scenes": [
+      {
+        "scene_id": 1,
+        "description": "Crowds gathering in a city square at night, anticipating celebration",
+        "description_ko": "축제를 기다리며 도심 광장에 모이는 군중, 야간",
+        "duration_sec": 5.0,
+        "attributes": { "time_of_day": "night", "season": "winter", "mood": "dramatic", "location": "outdoor" }
+      },
+      {
+        "scene_id": 2,
+        "description": "Fireworks exploding in colorful bursts over a city skyline at midnight",
+        "description_ko": "자정, 도심 스카이라인 위로 폭발하는 화려한 불꽃놀이",
+        "duration_sec": 6.0,
+        "attributes": { "time_of_day": "night", "season": "winter", "mood": "dramatic", "location": "outdoor" }
+      },
+      {
+        "scene_id": 3,
+        "description": "Slow motion fireworks reflecting in a river, colorful light on water",
+        "description_ko": "슬로모션으로 강물에 반사되는 불꽃놀이, 물 위의 빛",
+        "duration_sec": 5.0,
+        "attributes": { "time_of_day": "night", "season": "winter", "mood": "dramatic", "location": "outdoor" }
+      },
+      {
+        "scene_id": 4,
+        "description": "People hugging and celebrating in the streets after midnight",
+        "description_ko": "자정이 지나 거리에서 포옹하며 기뻐하는 사람들",
+        "duration_sec": 4.0,
+        "attributes": { "time_of_day": "night", "season": "winter", "mood": "bright", "location": "outdoor" }
+      }
+    ]
+  },
+  {
+    "id": "s09",
+    "title": "출퇴근 러시",
+    "title_en": "Rush Hour",
+    "scenes": [
+      {
+        "scene_id": 1,
+        "description": "Commuters rushing through a busy subway station in the morning",
+        "description_ko": "아침 지하철역을 분주하게 오가는 통근자들",
+        "duration_sec": 5.0,
+        "attributes": { "time_of_day": "morning", "season": "autumn", "mood": "neutral", "location": "indoor" }
+      },
+      {
+        "scene_id": 2,
+        "description": "Heavy traffic jam on a multi-lane highway during rush hour",
+        "description_ko": "러시아워 다차선 고속도로의 극심한 정체",
+        "duration_sec": 5.0,
+        "attributes": { "time_of_day": "morning", "season": "autumn", "mood": "neutral", "location": "outdoor" }
+      },
+      {
+        "scene_id": 3,
+        "description": "Aerial view of congested freeway interchange at peak hours",
+        "description_ko": "혼잡 시간대 고속도로 인터체인지 항공 뷰",
+        "duration_sec": 5.0,
+        "attributes": { "time_of_day": "morning", "season": "autumn", "mood": "neutral", "location": "outdoor" }
+      },
+      {
+        "scene_id": 4,
+        "description": "Foggy morning city street with commuters walking to work",
+        "description_ko": "안개 낀 아침 도시 거리, 출근하는 사람들",
+        "duration_sec": 5.0,
+        "attributes": { "time_of_day": "morning", "season": "autumn", "mood": "cool", "location": "outdoor" }
+      }
+    ]
+  },
+  {
+    "id": "s10",
+    "title": "봄의 시작",
+    "title_en": "First Day of Spring",
+    "scenes": [
+      {
+        "scene_id": 1,
+        "description": "Cherry blossoms falling in a park on a bright spring morning",
+        "description_ko": "봄 화창한 아침, 공원에 흩날리는 벚꽃",
+        "duration_sec": 5.0,
+        "attributes": { "time_of_day": "morning", "season": "spring", "mood": "bright", "location": "outdoor" }
+      },
+      {
+        "scene_id": 2,
+        "description": "People having a picnic on green grass in a sunny park",
+        "description_ko": "화창한 공원 잔디밭에서 피크닉을 즐기는 사람들",
+        "duration_sec": 5.0,
+        "attributes": { "time_of_day": "afternoon", "season": "spring", "mood": "bright", "location": "outdoor" }
+      },
+      {
+        "scene_id": 3,
+        "description": "A child running through a field of blooming wildflowers",
+        "description_ko": "야생화가 만발한 들판을 달리는 아이",
+        "duration_sec": 4.0,
+        "attributes": { "time_of_day": "afternoon", "season": "spring", "mood": "bright", "location": "outdoor" }
+      },
+      {
+        "scene_id": 4,
+        "description": "Golden sunset over a flower field, warm glowing light",
+        "description_ko": "꽃밭 위로 지는 황금빛 노을",
+        "duration_sec": 5.0,
+        "attributes": { "time_of_day": "evening", "season": "spring", "mood": "warm", "location": "outdoor" }
+      }
+    ]
+  }
+]

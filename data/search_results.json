@@ -1,0 +1,140 @@
+{
+  "queries": [
+    {
+      "id": "q01",
+      "query": "a dog running on a beach",
+      "routing": "USE_AS_IS",
+      "scores": { "bm25": 0.82, "dense": 0.91, "colbert": 0.88, "itm": 0.94 },
+      "results": [
+        { "id": "video7012", "caption": "A golden retriever runs along the shoreline at sunset", "score": 0.94, "thumbnail": null },
+        { "id": "video3241", "caption": "Two dogs playing fetch on a sandy beach", "score": 0.89, "thumbnail": null },
+        { "id": "video5518", "caption": "A dog splashing through shallow ocean waves", "score": 0.85, "thumbnail": null },
+        { "id": "video0892", "caption": "Slow motion of a dog leaping across beach sand", "score": 0.81, "thumbnail": null },
+        { "id": "video6204", "caption": "A labrador running along a coastal path near the sea", "score": 0.78, "thumbnail": null }
+      ]
+    },
+    {
+      "id": "q02",
+      "query": "city skyline at night with neon lights",
+      "routing": "TRANSFORM",
+      "inverse_prompt": "A sprawling cityscape at night, neon signs blazing in electric blue and magenta, deep indigo sky, volumetric haze catching the neon glow, cinematic wide shot",
+      "transform_backend": "tokenflow",
+      "scores": { "bm25": 0.61, "dense": 0.79, "colbert": 0.74, "itm": 0.71 },
+      "results": [
+        { "id": "video2201", "caption": "Urban skyline at dusk with city lights turning on", "score": 0.71, "thumbnail": null },
+        { "id": "video4432", "caption": "Downtown buildings at evening with street traffic", "score": 0.67, "thumbnail": null },
+        { "id": "video1109", "caption": "Aerial view of a city at twilight", "score": 0.63, "thumbnail": null },
+        { "id": "video7744", "caption": "Time-lapse of city lights illuminating at sunset", "score": 0.59, "thumbnail": null },
+        { "id": "video3390", "caption": "Skyscrapers lit up during evening hours", "score": 0.55, "thumbnail": null }
+      ]
+    },
+    {
+      "id": "q03",
+      "query": "people cooking in a kitchen",
+      "routing": "USE_AS_IS",
+      "scores": { "bm25": 0.88, "dense": 0.86, "colbert": 0.90, "itm": 0.92 },
+      "results": [
+        { "id": "video5501", "caption": "A chef preparing pasta in a professional kitchen", "score": 0.92, "thumbnail": null },
+        { "id": "video2278", "caption": "Family cooking together around a kitchen island", "score": 0.88, "thumbnail": null },
+        { "id": "video6634", "caption": "Close-up of hands chopping vegetables on a cutting board", "score": 0.85, "thumbnail": null },
+        { "id": "video1120", "caption": "Woman stirring a pot on a stove in home kitchen", "score": 0.81, "thumbnail": null },
+        { "id": "video4490", "caption": "Man frying eggs in a pan, morning kitchen scene", "score": 0.77, "thumbnail": null }
+      ]
+    },
+    {
+      "id": "q04",
+      "query": "snow falling in a winter forest",
+      "routing": "TRANSFORM",
+      "inverse_prompt": "Dense forest in deep winter, heavy snowfall blanketing pine trees, muted silver-blue palette, soft diffused light filtering through snow clouds, serene and still atmosphere",
+      "transform_backend": "tokenflow",
+      "scores": { "bm25": 0.55, "dense": 0.73, "colbert": 0.69, "itm": 0.68 },
+      "results": [
+        { "id": "video3312", "caption": "Forest path covered in autumn leaves", "score": 0.68, "thumbnail": null },
+        { "id": "video6621", "caption": "Trees in a park during early winter morning", "score": 0.64, "thumbnail": null },
+        { "id": "video0045", "caption": "Rain falling in a dense forest", "score": 0.61, "thumbnail": null },
+        { "id": "video5503", "caption": "Fog drifting through tall pine trees", "score": 0.57, "thumbnail": null },
+        { "id": "video2289", "caption": "Sunlight filtering through a forest canopy", "score": 0.53, "thumbnail": null }
+      ]
+    },
+    {
+      "id": "q05",
+      "query": "a child riding a bicycle",
+      "routing": "USE_AS_IS",
+      "scores": { "bm25": 0.91, "dense": 0.89, "colbert": 0.93, "itm": 0.95 },
+      "results": [
+        { "id": "video1234", "caption": "A young girl riding a red bicycle in a park", "score": 0.95, "thumbnail": null },
+        { "id": "video5671", "caption": "Child learning to ride a bike with training wheels", "score": 0.90, "thumbnail": null },
+        { "id": "video3345", "caption": "Boy cycling down a suburban sidewalk", "score": 0.86, "thumbnail": null },
+        { "id": "video7802", "caption": "Kids racing bicycles on a playground track", "score": 0.82, "thumbnail": null },
+        { "id": "video2211", "caption": "Child on a bicycle waving to camera in a garden", "score": 0.78, "thumbnail": null }
+      ]
+    },
+    {
+      "id": "q06",
+      "query": "ocean waves crashing on rocks",
+      "routing": "USE_AS_IS",
+      "scores": { "bm25": 0.85, "dense": 0.93, "colbert": 0.91, "itm": 0.96 },
+      "results": [
+        { "id": "video8801", "caption": "Powerful waves crashing against rocky coastal cliffs", "score": 0.96, "thumbnail": null },
+        { "id": "video4432", "caption": "Ocean surf breaking over jagged rocks at high tide", "score": 0.91, "thumbnail": null },
+        { "id": "video2209", "caption": "Slow motion wave breaking on a stone shoreline", "score": 0.87, "thumbnail": null },
+        { "id": "video6634", "caption": "Sea spray rising from waves hitting coastal boulders", "score": 0.83, "thumbnail": null },
+        { "id": "video1105", "caption": "Aerial view of waves approaching a rocky headland", "score": 0.79, "thumbnail": null }
+      ]
+    },
+    {
+      "id": "q07",
+      "query": "a crowded sports stadium",
+      "routing": "USE_AS_IS",
+      "scores": { "bm25": 0.87, "dense": 0.84, "colbert": 0.89, "itm": 0.91 },
+      "results": [
+        { "id": "video3301", "caption": "Packed soccer stadium with fans cheering", "score": 0.91, "thumbnail": null },
+        { "id": "video7712", "caption": "Aerial view of a full baseball stadium during a game", "score": 0.87, "thumbnail": null },
+        { "id": "video5530", "caption": "Crowd wave passing through a stadium of spectators", "score": 0.83, "thumbnail": null },
+        { "id": "video1198", "caption": "Basketball arena filled with fans during playoff game", "score": 0.79, "thumbnail": null },
+        { "id": "video4421", "caption": "Fans celebrating a goal in a football stadium", "score": 0.75, "thumbnail": null }
+      ]
+    },
+    {
+      "id": "q08",
+      "query": "sunrise over mountain peaks",
+      "routing": "TRANSFORM",
+      "inverse_prompt": "Mountain summit at first light, golden sunrise rays breaking over jagged peaks, vivid orange and rose sky, low-lying mist in the valleys, epic wide establishing shot",
+      "transform_backend": "tokenflow",
+      "scores": { "bm25": 0.63, "dense": 0.77, "colbert": 0.72, "itm": 0.74 },
+      "results": [
+        { "id": "video6600", "caption": "Mountain landscape in the early morning with haze", "score": 0.74, "thumbnail": null },
+        { "id": "video2244", "caption": "Clouds moving over a mountain range at midday", "score": 0.70, "thumbnail": null },
+        { "id": "video8890", "caption": "Hikers at a mountain viewpoint during golden hour", "score": 0.66, "thumbnail": null },
+        { "id": "video3312", "caption": "Snowy mountain peaks under a clear blue sky", "score": 0.62, "thumbnail": null },
+        { "id": "video5521", "caption": "Wide shot of alpine terrain with low clouds", "score": 0.58, "thumbnail": null }
+      ]
+    },
+    {
+      "id": "q09",
+      "query": "traffic jam on a highway",
+      "routing": "USE_AS_IS",
+      "scores": { "bm25": 0.90, "dense": 0.88, "colbert": 0.92, "itm": 0.93 },
+      "results": [
+        { "id": "video4410", "caption": "Bumper-to-bumper traffic on a multi-lane highway", "score": 0.93, "thumbnail": null },
+        { "id": "video7723", "caption": "Aerial view of congested freeway interchange at rush hour", "score": 0.89, "thumbnail": null },
+        { "id": "video1156", "caption": "Cars stopped in gridlock on an urban expressway", "score": 0.85, "thumbnail": null },
+        { "id": "video5542", "caption": "Highway traffic flowing slowly during peak hours", "score": 0.81, "thumbnail": null },
+        { "id": "video3378", "caption": "Time-lapse of highway congestion building up", "score": 0.77, "thumbnail": null }
+      ]
+    },
+    {
+      "id": "q10",
+      "query": "fireworks exploding over a city",
+      "routing": "USE_AS_IS",
+      "scores": { "bm25": 0.89, "dense": 0.92, "colbert": 0.94, "itm": 0.97 },
+      "results": [
+        { "id": "video9901", "caption": "Fourth of July fireworks bursting above a downtown skyline", "score": 0.97, "thumbnail": null },
+        { "id": "video5566", "caption": "Colorful fireworks display over a harbor at New Year's", "score": 0.92, "thumbnail": null },
+        { "id": "video2230", "caption": "Fireworks exploding in slow motion above city rooftops", "score": 0.88, "thumbnail": null },
+        { "id": "video7745", "caption": "Multi-burst fireworks show reflecting on a river", "score": 0.84, "thumbnail": null },
+        { "id": "video3389", "caption": "Aerial view of fireworks lighting up a city at night", "score": 0.80, "thumbnail": null }
+      ]
+    }
+  ]
+}

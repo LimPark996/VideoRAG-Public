@@ -1,0 +1,40 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+dist/
+build/
+
+# Data (too large for git)
+data/msrvtt/videos/
+data/msrvtt/test_1ka_videos/*.mp4
+data/msrvtt/keyframes/
+data/msrvtt/annotations/*.pkl
+data/msrvtt/annotations/*.index
+data/msrvtt/annotations/*.ids
+
+# Model weights
+models/
+
+# Index files (built by 01_indexing.ipynb)
+index/
+
+# Output (generated at runtime)
+output/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Colab
+.ipynb_checkpoints/
+
+# Secrets
+.env
+*.secret

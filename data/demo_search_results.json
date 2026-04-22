@@ -1,0 +1,1742 @@
+{
+  "s01": {
+    "scene_1": {
+      "scene_id": 1,
+      "description": "Fishing boats anchored at dawn in a calm harbor, misty morning light",
+      "description_ko": "새벽녘 항구에 정박된 어선들, 안개 낀 아침",
+      "attributes": {
+        "time_of_day": "dawn",
+        "season": "winter",
+        "mood": "cool",
+        "location": "outdoor"
+      },
+      "top5": [
+        {
+          "video_id": "video1631",
+          "caption": "A young man in a light yellow shirt and cap stands on a sandy beach, gesturing animatedly towards a fleet of fishing boats bobbing in the water, while the overcast sky and gentle waves create a serene yet slightly somber atmosphere, suggesting a moment of reflection or communication about the maritime scene before him.",
+          "score": 0.2860802412033081,
+          "video_path": "/content/drive/MyDrive/videorag_prototype/data/msrvtt/videos/video1631.mp4"
+        },
+        {
+          "video_id": "video1947",
+          "caption": "A serene coastal scene unfolds as a lone sailboat glides through the turquoise waters, while an aerial view captures a network of wooden piers and structures extending into the shallow sea, surrounded by lush greenery and scattered boats, creating a picturesque and tranquil atmosphere.",
+          "score": 0.21304115653038025,
+          "video_path": "/content/drive/MyDrive/videorag_prototype/data/msrvtt/videos/video1947.mp4"
+        },
+        {
+          "video_id": "video5167",
+          "caption": "A serene coastal scene unfolds as the camera captures a clear blue sky and calm waters, showcasing a picturesque shoreline dotted with sailboats and a distant town nestled among green hills, while the gentle waves lap against the rocky beach, creating a tranquil atmosphere.",
+          "score": 0.12104716897010803,
+          "video_path": "/content/drive/MyDrive/videorag_prototype/data/msrvtt/videos/video5167.mp4"
+        },
+        {
+          "video_id": "video6042",
+          "caption": "A serene coastal scene unfolds with several sailboats gently bobbing on the water, transitioning to a vibrant town square dominated by a distinctive building featuring a pointed roof and decorative elements, all set against a backdrop of a clear blue sky adorned with wispy clouds.",
+          "score": 0.08614267408847809,
+          "video_path": "/content/drive/MyDrive/videorag_prototype/data/msrvtt/videos/video6042.mp4"
+        },
+        {
+          "video_id": "video4206",
+          "caption": "A scenic waterfront view captures the vibrant atmosphere of Fisher Island, showcasing luxurious waterfront buildings alongside a serene pathway lined with palm trees, while boats glide through the sparkling blue waters under a bright sky dotted with fluffy clouds.",
+          "score": -0.3047346770763397,
+          "video_path": "/content/drive/MyDrive/videorag_prototype/data/msrvtt/videos/video4206.mp4"
+        }
+      ]
+    },
+    "scene_2": {
+      "scene_id": 2,
+      "description": "Fishermen pulling nets on a fishing boat at sea",
+      "description_ko": "바다에서 그물을 끌어올리는 어부들",
+      "attributes": {
+        "time_of_day": "morning",
+        "season": "winter",
+        "mood": "dramatic",
+        "location": "outdoor"
+      },
+      "top5": [
+        {
+          "video_id": "video5519",
+          "caption": "A tense atmosphere unfolds as a crowd gathers in an arena, where a lone figure stands defiantly amidst fallen adversaries, while in a contrasting coastal setting, fishermen prepare their boats for a shark hunt, showcasing a mix of camaraderie and urgency as they navigate the waters filled with multiple vessels, all driven by a shared goal of confronting the looming threat beneath the waves.",
+          "score": 0.5479840636253357,
+          "video_path": "/content/drive/MyDrive/videorag_prototype/data/msrvtt/videos/video5519.mp4"
+        },
+        {
+          "video_id": "video2060",
+          "caption": "A group of fishermen in a boat actively catch and remove invasive Asian carp from the Missouri and Mississippi River regions, demonstrating their efforts to manage the species that disrupts local ecosystems, as they struggle with the large fish while showcasing a net filled with various caught fish and navigating the river under a clear sky.",
+          "score": 0.44366422295570374,
+          "video_path": "/content/drive/MyDrive/videorag_prototype/data/msrvtt/videos/video2060.mp4"
+        },
+        {
+          "video_id": "video1631",
+          "caption": "A young man in a light yellow shirt and cap stands on a sandy beach, gesturing animatedly towards a fleet of fishing boats bobbing in the water, while the overcast sky and gentle waves create a serene yet slightly somber atmosphere, suggesting a moment of reflection or communication about the maritime scene before him.",
+          "score": 0.32920873165130615,
+          "video_path": "/content/drive/MyDrive/videorag_prototype/data/msrvtt/videos/video1631.mp4"
+        },
+        {
+          "video_id": "video4417",
+          "caption": "A group of fishermen in a motorboat navigates a river, where they observe bighead carp leaping out of the water, creating splashes as they attempt to catch the fish amidst the lush green banks and calm waters surrounding them.",
+          "score": -0.02931443601846695,
+          "video_path": "/content/drive/MyDrive/videorag_prototype/data/msrvtt/videos/video4417.mp4"
+        },
+        {
+          "video_id": "video2157",
+          "caption": "A father and son stand on the sandy beach, with the boy holding a fishing rod, while the backdrop features gentle waves lapping at the shore and a group of onlookers seated nearby; the atmosphere is lively as shimmering schools of fish break the water's surface, drawing the boy’s attention as he eagerly waits for a catch amidst the picturesque coastal scenery.",
+          "score": -0.035342101007699966,
+          "video_path": "/content/drive/MyDrive/videorag_prototype/data/msrvtt/videos/video2157.mp4"
+        }
+      ]
+    },
+    "scene_3": {
+      "scene_id": 3,
+      "description": "Empty fishing village streets in the evening, weathered houses",
+      "description_ko": "저녁의 텅 빈 어촌 마을 골목, 낡은 집들",
+      "attributes": {
+        "time_of_day": "evening",
+        "season": "winter",
+        "mood": "dark",
+        "location": "outdoor"
+      },
+      "top5": [
+        {
+          "video_id": "video6042",
+          "caption": "A serene coastal scene unfolds with several sailboats gently bobbing on the water, transitioning to a vibrant town square dominated by a distinctive building featuring a pointed roof and decorative elements, all set against a backdrop of a clear blue sky adorned with wispy clouds.",
+          "score": 0.1860852986574173,
+          "video_path": "/content/drive/MyDrive/videorag_prototype/data/msrvtt/videos/video6042.mp4"
+        },
+        {
+          "video_id": "video3763",
+          "caption": "A series of distorted frames captures a dimly lit, deserted street scene set in an old architectural environment, where the camera gradually navigates around corners and through narrow passages, revealing buildings with character and trees lining the road, while a subtle change in light suggests the approach of twilight, enhancing the mysterious atmosphere of the journey.",
+          "score": 0.1478625237941742,
+          "video_path": "/content/drive/MyDrive/videorag_prototype/data/msrvtt/videos/video3763.mp4"
+        },
+        {
+          "video_id": "video631",
+          "caption": "A picturesque aerial view of a quaint town reveals a cluster of charming, terracotta-roofed buildings surrounding a prominent clock tower, while the serene river glistens in the background under a clear blue sky, transitioning to a bustling street scene where small cafes and shops are animated with people enjoying the vibrant atmosphere amidst lush green trees.",
+          "score": 0.13240930438041687,
+          "video_path": "/content/drive/MyDrive/videorag_prototype/data/msrvtt/videos/video631.mp4"
+        },
+        {
+          "video_id": "video6298",
+          "caption": "A picturesque town square unfolds, showcasing charming buildings adorned with greenery, where the sunlight casts a warm glow on the vibrant architecture, including a prominent historical structure with intricate details and a bell tower, while the scene captures the essence of a leisurely day in a lively Mediterranean setting.",
+          "score": 0.0726918950676918,
+          "video_path": "/content/drive/MyDrive/videorag_prototype/data/msrvtt/videos/video6298.mp4"
+        },
+        {
+          "video_id": "video2814",
+          "caption": "A truck navigates through a quiet, desolate village, passing by rustic wooden houses with weathered roofs and surrounded by autumn foliage, while text overlays hint at a tense atmosphere, suggesting the presence of unseen threats or challenges in the environment.",
+          "score": -0.03261961042881012,
+          "video_path": "/content/drive/MyDrive/videorag_prototype/data/msrvtt/videos/video2814.mp4"
+        }
+      ]
+    },
+    "scene_4": {
+      "scene_id": 4,
+      "description": "Ocean waves crashing on rocky coastal cliffs",
+      "description_ko": "바위 절벽에 부서지는 파도",
+      "attributes": {
+        "time_of_day": "afternoon",
+        "season": "winter",
+        "mood": "dramatic",
+        "location": "outdoor"
+      },
+      "top5": [
+        {
+          "video_id": "video489",
+          "caption": "A solitary figure stands atop a rugged cliff, gazing out over the expansive blue waters below, where gentle waves ripple against the rocky shoreline, as distant mountains rise majestically in the background, creating a dramatic contrast between the vibrant landscape and the calm sea.",
+          "score": 0.945611834526062,
+          "video_path": "/content/drive/MyDrive/videorag_prototype/data/msrvtt/videos/video489.mp4"
+        },
+        {
+          "video_id": "video5167",
+          "caption": "A serene coastal scene unfolds as the camera captures a clear blue sky and calm waters, showcasing a picturesque shoreline dotted with sailboats and a distant town nestled among green hills, while the gentle waves lap against the rocky beach, creating a tranquil atmosphere.",
+          "score": 0.7390820980072021,
+          "video_path": "/content/drive/MyDrive/videorag_prototype/data/msrvtt/videos/video5167.mp4"
+        },
+        {
+          "video_id": "video1567",
+          "caption": "Rushing waters cascade over a rocky riverbed, creating frothy white waves that crash against the orange-hued stones lining the shore, while lush greenery frames the scene, hinting at a vibrant natural setting where the river flows energetically through a serene landscape.",
+          "score": 0.7037338614463806,
+          "video_path": "/content/drive/MyDrive/videorag_prototype/data/msrvtt/videos/video1567.mp4"
+        },
+        {
+          "video_id": "video2651",
+          "caption": "A sleek car navigates a rugged coastal road, its journey highlighted by crashing waves against the rocky shore, before transitioning to a whimsical scene where a cheerful astronaut figurine waves excitedly from a white picket fence, as a startled man in a vintage racing outfit observes the peculiar sight amidst a quiet suburban backdrop.",
+          "score": 0.6462517976760864,
+          "video_path": "/content/drive/MyDrive/videorag_prototype/data/msrvtt/videos/video2651.mp4"
+        },
+        {
+          "video_id": "video5752",
+          "caption": "A breathtaking aerial view captures a serene coastal landscape featuring a prominent white lighthouse perched on a rugged cliff, surrounded by lush green hills and a winding path, while the tranquil waters of the bay reflect the soft light of the setting sun, enhancing the picturesque scene with a sense of calm and isolation.",
+          "score": 0.47221481800079346,
+          "video_path": "/content/drive/MyDrive/videorag_prototype/data/msrvtt/videos/video5752.mp4"
+        }
+      ]
+    }
+  },
+  "s02": {
+    "scene_1": {
+      "scene_id": 1,
+      "description": "Busy city intersection with heavy traffic during rush hour, daytime",
+      "description_ko": "낮 러시아워의 혼잡한 도심 교차로",
+      "attributes": {
+        "time_of_day": "afternoon",
+        "season": "summer",
+        "mood": "neutral",
+        "location": "outdoor"
+      },
+      "top5": [
+        {
+          "video_id": "video5947",
+          "caption": "A white SUV attempts to navigate through a busy intersection, causing a near-collision with a tram while other vehicles, including a red bus and several cars, are halted in traffic, creating a chaotic scene in an urban setting characterized by tram lines and nearby shops.",
+          "score": 0.8937212824821472,
+          "video_path": "/content/drive/MyDrive/videorag_prototype/data/msrvtt/videos/video5947.mp4"
+        },
+        {
+          "video_id": "video6325",
+          "caption": "A cyclist navigates through a busy urban intersection, where a mix of cars and pedestrians creates a bustling atmosphere, while the camera captures the cyclist's perspective as they approach a crowded street filled with yellow taxis and buses, highlighting the vibrant yet chaotic nature of city life.",
+          "score": 0.8275629878044128,
+          "video_path": "/content/drive/MyDrive/videorag_prototype/data/msrvtt/videos/video6325.mp4"
+        },
+        {
+          "video_id": "video4956",
+          "caption": "A bustling street scene unfolds as various vehicles, including white vans and auto rickshaws, navigate through a busy road lined with pedestrians, while the backdrop features distant mountains and a mix of urban infrastructure, highlighting the vibrant daily life in the area.",
+          "score": 0.7091357111930847,
+          "video_path": "/content/drive/MyDrive/videorag_prototype/data/msrvtt/videos/video4956.mp4"
+        },
+        {
+          "video_id": "video5037",
+          "caption": "Amidst the bustling urban landscape, busy pedestrians navigate the sidewalks as modern buildings tower overhead, with a city bus making its way down the street while large advertisements adorn the facades, showcasing the vibrant energy of the metropolis on a clear, sunny day.",
+          "score": 0.3805774748325348,
+          "video_path": "/content/drive/MyDrive/videorag_prototype/data/msrvtt/videos/video5037.mp4"
+        },
+        {
+          "video_id": "video6001",
+          "caption": "At a busy intersection illuminated by streetlights on a rainy night, multiple vehicles, including trucks and cars, navigate through changing traffic signals, with one truck appearing to make a sudden left turn while other vehicles, caught in the green light, continue to move forward, creating a tense moment as they approach the intersection.",
+          "score": 0.3797943592071533,
+          "video_path": "/content/drive/MyDrive/videorag_prototype/data/msrvtt/videos/video6001.mp4"
+        }
+      ]
+    },
+    "scene_2": {
+      "scene_id": 2,
+      "description": "City skyline at night with neon lights blazing, electric blue and magenta signs",
+      "description_ko": "네온사인이 빛나는 도시 야경",
+      "attributes": {
+        "time_of_day": "night",
+        "season": "summer",
+        "mood": "dramatic",
+        "location": "outdoor"
+      },
+      "top5": [
+        {
+          "video_id": "video4900",
+          "caption": "A bustling alleyway in a vibrant city comes alive at night, illuminated by colorful neon signs and filled with pedestrians, as a man in a backpack strolls past lively shops selling clothing and food, while a vendor prepares meals behind a glass counter, showcasing the energetic atmosphere of nightlife and local culture.",
+          "score": 0.7889753580093384,
+          "video_path": "/content/drive/MyDrive/videorag_prototype/data/msrvtt/videos/video4900.mp4"
+        },
+        {
+          "video_id": "video1124",
+          "caption": "Two workers are installing a large, vibrant wall mural depicting a nighttime city skyline, featuring illuminated buildings and a reflective river, while a ladder and protective covering are present in a modern interior setting, highlighting their meticulous effort to enhance the room's ambiance.",
+          "score": 0.4885118305683136,
+          "video_path": "/content/drive/MyDrive/videorag_prototype/data/msrvtt/videos/video1124.mp4"
+        },
+        {
+          "video_id": "video539",
+          "caption": "Vibrant autumn colors dominate the expansive landscape, showcasing a breathtaking aerial view of rolling hills and dense forests, where shades of orange, red, and yellow intermingle with patches of green, while a distant white structure peeks through the foliage, hinting at human presence amidst the natural beauty.",
+          "score": 0.11925344914197922,
+          "video_path": "/content/drive/MyDrive/videorag_prototype/data/msrvtt/videos/video539.mp4"
+        },
+        {
+          "video_id": "video1464",
+          "caption": "A bustling nighttime scene unfolds in a narrow alley filled with parked motorbikes, where pedestrians stroll past vibrant neon signs and small food stalls, as a motorcyclist navigates through the lively atmosphere, highlighting the blend of urban life and local culture in this vibrant setting.",
+          "score": 0.11745859682559967,
+          "video_path": "/content/drive/MyDrive/videorag_prototype/data/msrvtt/videos/video1464.mp4"
+        },
+        {
+          "video_id": "video26",
+          "caption": "A tense conversation unfolds between two characters in a dimly lit setting, transitioning to a dramatic black-and-white skyline of a city, followed by promotional images for the TV series \"Forever\" and \"Agents of S.H.I.E.L.D.,\" culminating in a visually striking scene featuring a character in a flowing blue gown, reminiscent of a fairy tale, standing alone in a mysterious, illuminated space.",
+          "score": -0.13279256224632263,
+          "video_path": "/content/drive/MyDrive/videorag_prototype/data/msrvtt/videos/video26.mp4"
+        }
+      ]
+    },
+    "scene_3": {
+      "scene_id": 3,
+      "description": "People walking on a rainy night street, reflections on wet pavement",
+      "description_ko": "비 오는 밤 거리를 걷는 사람들, 젖은 도로의 반사",
+      "attributes": {
+        "time_of_day": "night",
+        "season": "summer",
+        "mood": "dark",
+        "location": "outdoor"
+      },
+      "top5": [
+        {
+          "video_id": "video6001",
+          "caption": "At a busy intersection illuminated by streetlights on a rainy night, multiple vehicles, including trucks and cars, navigate through changing traffic signals, with one truck appearing to make a sudden left turn while other vehicles, caught in the green light, continue to move forward, creating a tense moment as they approach the intersection.",
+          "score": 0.7171691656112671,
+          "video_path": "/content/drive/MyDrive/videorag_prototype/data/msrvtt/videos/video6001.mp4"
+        },
+        {
+          "video_id": "video1508",
+          "caption": "A tense scene unfolds on a dimly lit city street where a man, visibly distressed, walks briskly alongside a woman who clutches a colorful blanket, both appearing anxious as they navigate past parked cars and flickering streetlights, suggesting they are either escaping a threat or searching for safety amidst the urban night.",
+          "score": 0.7138631343841553,
+          "video_path": "/content/drive/MyDrive/videorag_prototype/data/msrvtt/videos/video1508.mp4"
+        },
+        {
+          "video_id": "video196",
+          "caption": "A woman wearing a white shirt runs through a flooded street, navigating the murky water, while another person in a red shirt carries an umbrella and approaches, as torrents of muddy water cascade from a nearby gate and swirl around parked cars in a neighborhood affected by heavy flooding.",
+          "score": 0.42248713970184326,
+          "video_path": "/content/drive/MyDrive/videorag_prototype/data/msrvtt/videos/video196.mp4"
+        },
+        {
+          "video_id": "video3119",
+          "caption": "A young man in a green jacket surprisingly playfully approaches a woman in a black coat on a bustling city street, creating an amusing interaction that catches the attention of passersby, while the surrounding urban setting features people walking, a red awning, and hinting at a lively atmosphere filled with movement and curiosity.",
+          "score": 0.34070324897766113,
+          "video_path": "/content/drive/MyDrive/videorag_prototype/data/msrvtt/videos/video3119.mp4"
+        },
+        {
+          "video_id": "video3631",
+          "caption": "A young man in a green jacket, navigating through a bustling urban street filled with pedestrians, appears to be playfully bumping into a woman in a black coat, while others around them continue with their daily routines, creating a lively and dynamic atmosphere.",
+          "score": 0.17111177742481232,
+          "video_path": "/content/drive/MyDrive/videorag_prototype/data/msrvtt/videos/video3631.mp4"
+        }
+      ]
+    },
+    "scene_4": {
+      "scene_id": 4,
+      "description": "Aerial view of a city at night, lights spreading to the horizon",
+      "description_ko": "야간 도시 항공 뷰, 지평선까지 퍼지는 불빛",
+      "attributes": {
+        "time_of_day": "night",
+        "season": "summer",
+        "mood": "dramatic",
+        "location": "outdoor"
+      },
+      "top5": [
+        {
+          "video_id": "video3967",
+          "caption": "A young boy runs along a dusty street, seemingly in a hurry, while vehicles pass by in the background, and the scene transitions to a panoramic view of a sprawling cityscape shrouded in haze, showcasing a mix of modern buildings and older structures, with a prominent clock tower visible amidst the urban landscape as dusk approaches, illuminating the streets with faint lights.",
+          "score": 1.129472255706787,
+          "video_path": "/content/drive/MyDrive/videorag_prototype/data/msrvtt/videos/video3967.mp4"
+        },
+        {
+          "video_id": "video5658",
+          "caption": "A spectacular fireworks display illuminates the night sky above a grand hotel, with vibrant bursts of color reflecting off the water, while the camera captures sweeping aerial views of the dazzling pyrotechnics that create intricate patterns and shapes, showcasing the festive atmosphere of the celebration.",
+          "score": 0.9816927909851074,
+          "video_path": "/content/drive/MyDrive/videorag_prototype/data/msrvtt/videos/video5658.mp4"
+        },
+        {
+          "video_id": "video5663",
+          "caption": "A vibrant nightlife scene unfolds as a live band performs energetically on stage, surrounded by colorful lights and an enthusiastic audience, while aerial views capture the bustling coastal city illuminated by twinkling lights and busy streets filled with crowds and food stalls, creating a lively atmosphere that showcases both musical entertainment and the allure of urban nightlife.",
+          "score": 0.8534409403800964,
+          "video_path": "/content/drive/MyDrive/videorag_prototype/data/msrvtt/videos/video5663.mp4"
+        },
+        {
+          "video_id": "video631",
+          "caption": "A picturesque aerial view of a quaint town reveals a cluster of charming, terracotta-roofed buildings surrounding a prominent clock tower, while the serene river glistens in the background under a clear blue sky, transitioning to a bustling street scene where small cafes and shops are animated with people enjoying the vibrant atmosphere amidst lush green trees.",
+          "score": 0.5054200887680054,
+          "video_path": "/content/drive/MyDrive/videorag_prototype/data/msrvtt/videos/video631.mp4"
+        },
+        {
+          "video_id": "video4345",
+          "caption": "A stunning view from the International Space Station captures southern Scandinavia at night, showcasing a vibrant green aurora shimmering in the northern sky, the dark expanse of the Baltic Sea, and illuminated city lights along the coastline, with notable cities like Oslo and Copenhagen clearly visible against the backdrop of clouds and snow, all under the glow of a full moon.",
+          "score": 0.4862837791442871,
+          "video_path": "/content/drive/MyDrive/videorag_prototype/data/msrvtt/videos/video4345.mp4"
+        }
+      ]
+    }
+  },
+  "s03": {
+    "scene_1": {
+      "scene_id": 1,
+      "description": "A child waking up in the morning, sunlight streaming through bedroom window",
+      "description_ko": "아침 햇살이 들어오는 방에서 깨어나는 아이",
+      "attributes": {
+        "time_of_day": "morning",
+        "season": "spring",
+        "mood": "bright",
+        "location": "indoor"
+      },
+      "top5": [
+        {
+          "video_id": "video3722",
+          "caption": "A young child with curly hair peacefully lies in bed, receiving a gentle goodnight kiss from a caregiver in a cozy, pastel-colored bedroom adorned with playful patterns, while the caregiver quietly exits the room, leaving the child to drift off to sleep as a whimsical star glows softly outside the window, illuminating the serene nighttime scene.",
+          "score": 0.2666929364204407,
+          "video_path": "/content/drive/MyDrive/videorag_prototype/data/msrvtt/videos/video3722.mp4"
+        },
+        {
+          "video_id": "video5110",
+          "caption": "A young man, appearing slightly disoriented, wakes up in his green-walled bedroom, glancing at a digital clock displaying 12:40, while he navigates through the cluttered space filled with personal items and decorations, occasionally blocking the camera view with his hand as he seems to be searching for something or preparing to start his day.",
+          "score": 0.0861060693860054,
+          "video_path": "/content/drive/MyDrive/videorag_prototype/data/msrvtt/videos/video5110.mp4"
+        },
+        {
+          "video_id": "video4019",
+          "caption": "A brightly colored children's bedroom features a bed with a pink blanket, surrounded by playful decor, including a vibrant mural of cartoon fish on the wall and colorful furniture, as the camera pans across the room, highlighting the inviting atmosphere and whimsical details.",
+          "score": 0.06949482858181,
+          "video_path": "/content/drive/MyDrive/videorag_prototype/data/msrvtt/videos/video4019.mp4"
+        },
+        {
+          "video_id": "video711",
+          "caption": "Under a starry night sky, a curious child in pajamas gazes out from a window, captivated by a glowing star that transforms into a whimsical character resembling a flying officer, who sparkles with light as they hover among the trees, creating a magical atmosphere filled with wonder and imagination.",
+          "score": -0.37992990016937256,
+          "video_path": "/content/drive/MyDrive/videorag_prototype/data/msrvtt/videos/video711.mp4"
+        },
+        {
+          "video_id": "video5100",
+          "caption": "A young girl is seen in her cozy, softly lit bedroom, where she appears to be reflecting on something joyful or amusing, as she smiles and playfully interacts with her surroundings, including a floral blanket and twinkling fairy lights, creating an intimate and whimsical atmosphere.",
+          "score": -1.0091956853866577,
+          "video_path": "/content/drive/MyDrive/videorag_prototype/data/msrvtt/videos/video5100.mp4"
+        }
+      ]
+    },
+    "scene_2": {
+      "scene_id": 2,
+      "description": "A child riding a bicycle in a sunny park, laughing",
+      "description_ko": "공원에서 자전거를 타는 아이, 웃음소리",
+      "attributes": {
+        "time_of_day": "morning",
+        "season": "spring",
+        "mood": "bright",
+        "location": "outdoor"
+      },
+      "top5": [
+        {
+          "video_id": "video898",
+          "caption": "A young woman in a colorful striped dress joyfully rides her bicycle through a suburban neighborhood, smiling and engaging with the camera, while in the background, a man painted entirely blue waves enthusiastically, adding a whimsical touch to the cheerful scene.",
+          "score": 0.4151350259780884,
+          "video_path": "/content/drive/MyDrive/videorag_prototype/data/msrvtt/videos/video898.mp4"
+        },
+        {
+          "video_id": "video5306",
+          "caption": "A group of individuals attempts various stunts on bicycles in outdoor settings, where one rider speeds toward a cone but crashes spectacularly into the grass, while another cyclist, dressed in white, loses control and tumbles onto the ground, both incidents eliciting laughter from onlookers amidst the backdrop of suburban homes and open fields.",
+          "score": 0.40007567405700684,
+          "video_path": "/content/drive/MyDrive/videorag_prototype/data/msrvtt/videos/video5306.mp4"
+        },
+        {
+          "video_id": "video2667",
+          "caption": "A cyclist rides along a picturesque coastal path, joyfully balancing with arms outstretched, as the sun glistens on the ocean in the background, while the scene shifts to a woman walking up a steep incline lined with modern beach houses, showcasing the vibrant atmosphere of a sunny day by the shore.",
+          "score": 0.18970797955989838,
+          "video_path": "/content/drive/MyDrive/videorag_prototype/data/msrvtt/videos/video2667.mp4"
+        },
+        {
+          "video_id": "video5495",
+          "caption": "A group of young children, dressed in colorful outfits, joyfully play on a sunny playground, climbing on equipment and running around, while one child approaches the camera with a cheerful expression, showcasing the lively atmosphere of a fun-filled day outdoors.",
+          "score": 0.17876708507537842,
+          "video_path": "/content/drive/MyDrive/videorag_prototype/data/msrvtt/videos/video5495.mp4"
+        },
+        {
+          "video_id": "video2547",
+          "caption": "A group of children enthusiastically slides down a vibrant green water slide at a sunny outdoor water park, seemingly ignoring their teacher's warnings about sunscreen, while the bright sun shines down on them, creating a warm atmosphere that hints at the potential for sunburn after hours of fun in the heat.",
+          "score": -0.3812447488307953,
+          "video_path": "/content/drive/MyDrive/videorag_prototype/data/msrvtt/videos/video2547.mp4"
+        }
+      ]
+    },
+    "scene_3": {
+      "scene_id": 3,
+      "description": "Children playing together on a playground, swings and slides",
+      "description_ko": "놀이터에서 뛰노는 아이들, 그네와 미끄럼틀",
+      "attributes": {
+        "time_of_day": "afternoon",
+        "season": "spring",
+        "mood": "bright",
+        "location": "outdoor"
+      },
+      "top5": [
+        {
+          "video_id": "video5495",
+          "caption": "A group of young children, dressed in colorful outfits, joyfully play on a sunny playground, climbing on equipment and running around, while one child approaches the camera with a cheerful expression, showcasing the lively atmosphere of a fun-filled day outdoors.",
+          "score": 1.355964183807373,
+          "video_path": "/content/drive/MyDrive/videorag_prototype/data/msrvtt/videos/video5495.mp4"
+        },
+        {
+          "video_id": "video5185",
+          "caption": "A lively gathering of teenagers at a playground features one young man in a gray and orange outfit energetically dancing at the center while others engage in playful activities around him, with some climbing on the equipment and others cheering, showcasing a vibrant atmosphere filled with laughter and excitement under the warm sunlight.",
+          "score": 0.9663091897964478,
+          "video_path": "/content/drive/MyDrive/videorag_prototype/data/msrvtt/videos/video5185.mp4"
+        },
+        {
+          "video_id": "video267",
+          "caption": "A group of animated children, including a girl in a pink skirt and polka-dot shirt, excitedly interacts with a woman in a pink top and jeans at a colorful playground, while a red wagon sits nearby, and one child points enthusiastically towards a skateboard lying on the ground, suggesting a playful atmosphere filled with curiosity and engagement.",
+          "score": 0.9142741560935974,
+          "video_path": "/content/drive/MyDrive/videorag_prototype/data/msrvtt/videos/video267.mp4"
+        },
+        {
+          "video_id": "video5930",
+          "caption": "Two young children play joyfully in a sandy area beneath trees, with one child holding a long stick while the other runs nearby, casting elongated shadows on the ground, as an adult can be seen in the background adjusting equipment attached to the trees, suggesting a setup for an outdoor activity or game.",
+          "score": 0.7411164045333862,
+          "video_path": "/content/drive/MyDrive/videorag_prototype/data/msrvtt/videos/video5930.mp4"
+        },
+        {
+          "video_id": "video4833",
+          "caption": "A lively group of children, both boys and girls, are energetically dancing and playing together in a grassy outdoor setting, showcasing a mix of joyful movements and playful interactions, with some wearing colorful clothing and a toy vehicle visible in the background, creating a vibrant and cheerful atmosphere.",
+          "score": 0.5168533325195312,
+          "video_path": "/content/drive/MyDrive/videorag_prototype/data/msrvtt/videos/video4833.mp4"
+        }
+      ]
+    },
+    "scene_4": {
+      "scene_id": 4,
+      "description": "A child reading a book under a lamp at home in the evening",
+      "description_ko": "저녁, 램프 아래서 책을 읽는 아이",
+      "attributes": {
+        "time_of_day": "evening",
+        "season": "spring",
+        "mood": "warm",
+        "location": "indoor"
+      },
+      "top5": [
+        {
+          "video_id": "video4985",
+          "caption": "A man with a beard enthusiastically shares a photo book filled with images of children and families, pointing out various pictures while laughing and engaging with a young boy nearby, who appears amused and slightly shy, all set in a cozy, well-lit kitchen environment.",
+          "score": 0.6190677285194397,
+          "video_path": "/content/drive/MyDrive/videorag_prototype/data/msrvtt/videos/video4985.mp4"
+        },
+        {
+          "video_id": "video6209",
+          "caption": "In a dimly lit room filled with children's drawings and toys, a tense conversation unfolds between two adults, one examining unsettling sketches that depict a menacing figure, while the other, visibly distressed, grapples with the implications of paranormal investigators potentially being frauds, as they discuss the eerie connection between the drawings and a powerful demon haunting their lives.",
+          "score": 0.40395522117614746,
+          "video_path": "/content/drive/MyDrive/videorag_prototype/data/msrvtt/videos/video6209.mp4"
+        },
+        {
+          "video_id": "video3672",
+          "caption": "A young woman, lying in bed surrounded by soft lighting and personal mementos, engages in a late-night text conversation with a friend named Hector, expressing concern about whether she's keeping him awake while revealing that he is currently at his grandmother's house.",
+          "score": 0.3746301233768463,
+          "video_path": "/content/drive/MyDrive/videorag_prototype/data/msrvtt/videos/video3672.mp4"
+        },
+        {
+          "video_id": "video5100",
+          "caption": "A young girl is seen in her cozy, softly lit bedroom, where she appears to be reflecting on something joyful or amusing, as she smiles and playfully interacts with her surroundings, including a floral blanket and twinkling fairy lights, creating an intimate and whimsical atmosphere.",
+          "score": 0.16770347952842712,
+          "video_path": "/content/drive/MyDrive/videorag_prototype/data/msrvtt/videos/video5100.mp4"
+        },
+        {
+          "video_id": "video1461",
+          "caption": "Three young girls are gathered closely together, with one girl in the center reading from a book while the others listen intently, showcasing a moment of shared curiosity and engagement in a cozy indoor setting, likely a classroom or home, before the scene shifts to an exterior view of a school building and then transitions to a lively classroom filled with children, highlighting an educational environment.",
+          "score": -0.2807464003562927,
+          "video_path": "/content/drive/MyDrive/videorag_prototype/data/msrvtt/videos/video1461.mp4"
+        }
+      ]
+    }
+  },
+  "s04": {
+    "scene_1": {
+      "scene_id": 1,
+      "description": "Snow falling heavily in a dense winter forest, pine trees covered in white",
+      "description_ko": "울창한 겨울 숲에 눈이 내리다, 흰 눈 덮인 소나무",
+      "attributes": {
+        "time_of_day": "morning",
+        "season": "winter",
+        "mood": "cool",
+        "location": "outdoor"
+      },
+      "top5": [
+        {
+          "video_id": "video6594",
+          "caption": "Amidst a serene winter landscape blanketed in thick, powdery snow, a skier navigates through a forest of tall, snow-covered trees, gracefully carving turns along a winding path while vibrant green flags mark the edges of a nearby slope, hinting at a ski run designed for both excitement and safety.",
+          "score": 1.3912729024887085,
+          "video_path": "/content/drive/MyDrive/videorag_prototype/data/msrvtt/videos/video6594.mp4"
+        },
+        {
+          "video_id": "video2056",
+          "caption": "Amidst the snowy landscape of Bumfass Hell, a serene scene unfolds where towering evergreen trees stand against a backdrop of rugged mountains and a cloudy sky, capturing the tranquil beauty of winter as patches of snow blanket the ground and hints of green peep through, suggesting a peaceful yet chilly environment.",
+          "score": 0.8978701829910278,
+          "video_path": "/content/drive/MyDrive/videorag_prototype/data/msrvtt/videos/video2056.mp4"
+        },
+        {
+          "video_id": "video6251",
+          "caption": "Amidst a stunning winter landscape, skiers in vibrant gear navigate through deep, powdery snow, showcasing thrilling maneuvers as they carve their way down steep slopes surrounded by snow-laden trees, with bright sunlight illuminating the pristine white terrain and distant mountain ranges in the background.",
+          "score": 0.8043732643127441,
+          "video_path": "/content/drive/MyDrive/videorag_prototype/data/msrvtt/videos/video6251.mp4"
+        },
+        {
+          "video_id": "video347",
+          "caption": "Amidst a serene winter landscape blanketed in deep snow, a skier navigates through a dense forest, skillfully maneuvering around small trees and snow-covered mounds, while the camera captures the thrill of the descent and the tranquility of the snowy surroundings.",
+          "score": 0.777493953704834,
+          "video_path": "/content/drive/MyDrive/videorag_prototype/data/msrvtt/videos/video347.mp4"
+        },
+        {
+          "video_id": "video5853",
+          "caption": "Amidst a heavy snowfall, a person in a blue outfit operates a snowplow to clear a path around a car completely buried in snow, while later frames transition to a serene winter landscape where two individuals in colorful attire navigate through a snow-covered forest, surrounded by bare trees blanketed in white.",
+          "score": 0.7696143984794617,
+          "video_path": "/content/drive/MyDrive/videorag_prototype/data/msrvtt/videos/video5853.mp4"
+        }
+      ]
+    },
+    "scene_2": {
+      "scene_id": 2,
+      "description": "Hikers trekking through a snowy mountain trail, breath visible in cold air",
+      "description_ko": "눈 덮인 산길을 걷는 등산객들, 차가운 공기 속 입김",
+      "attributes": {
+        "time_of_day": "morning",
+        "season": "winter",
+        "mood": "dramatic",
+        "location": "outdoor"
+      },
+      "top5": [
+        {
+          "video_id": "video730",
+          "caption": "A hiker, dressed in dark clothing and sturdy boots, navigates through a snowy landscape filled with trees and rocky terrain, showcasing the rugged footwear's grip and durability as he carefully steps over obstacles in the serene, wintry environment.",
+          "score": 0.3576350510120392,
+          "video_path": "/content/drive/MyDrive/videorag_prototype/data/msrvtt/videos/video730.mp4"
+        },
+        {
+          "video_id": "video4088",
+          "caption": "Amidst the breathtaking backdrop of towering snow-capped mountains and rugged terrain, a group of adventurers traverses a snowy landscape, while a helicopter hovers above, capturing the stunning and varied natural beauty of the region, which is punctuated by picturesque villages nestled in the valleys below.",
+          "score": 0.3356998562812805,
+          "video_path": "/content/drive/MyDrive/videorag_prototype/data/msrvtt/videos/video4088.mp4"
+        },
+        {
+          "video_id": "video2668",
+          "caption": "A breathtaking journey unfolds through stunning landscapes, showcasing vibrant green valleys and majestic snow-capped mountains, as people leisurely stroll across expansive meadows, explore serene lakes, and navigate winding paths, all set against the backdrop of a picturesque hotel nestled in a snowy terrain.",
+          "score": 0.11593230813741684,
+          "video_path": "/content/drive/MyDrive/videorag_prototype/data/msrvtt/videos/video2668.mp4"
+        },
+        {
+          "video_id": "video6670",
+          "caption": "A serene natural setting unfolds as a gentle stream cascades over rocky terrain, with close-up shots capturing the flowing water and the textured stones beneath, while a hiker in sturdy boots navigates the muddy path beside the stream, eventually revealing a breathtaking waterfall cascading down a rugged cliff in the background, surrounded by lush greenery.",
+          "score": -0.039948970079422,
+          "video_path": "/content/drive/MyDrive/videorag_prototype/data/msrvtt/videos/video6670.mp4"
+        },
+        {
+          "video_id": "video6508",
+          "caption": "A group of hikers, including a woman in a green tank top and shorts, enthusiastically navigates a rugged volcanic landscape, pointing out features and climbing steep, rocky inclines, while two men in casual attire share smiles and laughter against a backdrop of pine trees and distant mountains.",
+          "score": -0.09022554755210876,
+          "video_path": "/content/drive/MyDrive/videorag_prototype/data/msrvtt/videos/video6508.mp4"
+        }
+      ]
+    },
+    "scene_3": {
+      "scene_id": 3,
+      "description": "Sunrise over mountain peaks, golden rays breaking over snow-capped summits",
+      "description_ko": "설산 봉우리 위로 떠오르는 일출, 황금빛 햇살",
+      "attributes": {
+        "time_of_day": "dawn",
+        "season": "winter",
+        "mood": "dramatic",
+        "location": "outdoor"
+      },
+      "top5": [
+        {
+          "video_id": "video4088",
+          "caption": "Amidst the breathtaking backdrop of towering snow-capped mountains and rugged terrain, a group of adventurers traverses a snowy landscape, while a helicopter hovers above, capturing the stunning and varied natural beauty of the region, which is punctuated by picturesque villages nestled in the valleys below.",
+          "score": 0.706722617149353,
+          "video_path": "/content/drive/MyDrive/videorag_prototype/data/msrvtt/videos/video4088.mp4"
+        },
+        {
+          "video_id": "video4898",
+          "caption": "A serene landscape unfolds with majestic snow-capped mountains reflecting in a tranquil lake, surrounded by lush green meadows where a group of horses grazes peacefully, while misty trails wind through dense forests, creating a picturesque and idyllic setting that captures the beauty of nature.",
+          "score": 0.6424380540847778,
+          "video_path": "/content/drive/MyDrive/videorag_prototype/data/msrvtt/videos/video4898.mp4"
+        },
+        {
+          "video_id": "video1375",
+          "caption": "Set against a backdrop of majestic snow-capped mountains and a vibrant turquoise lake, a car meanders along a winding road, providing glimpses of lush greenery and dramatic rocky terrains as the sun casts bright light over the serene landscape that highlights the natural beauty of the surroundings.",
+          "score": 0.34355270862579346,
+          "video_path": "/content/drive/MyDrive/videorag_prototype/data/msrvtt/videos/video1375.mp4"
+        },
+        {
+          "video_id": "video4032",
+          "caption": "Overlooking a serene, turquoise lake surrounded by a lush green forest, a sweeping aerial view captures the vibrant colors of nature, highlighted by the impressive rocky slopes and distant mountain peaks under a bright blue sky filled with fluffy white clouds.",
+          "score": 0.32785284519195557,
+          "video_path": "/content/drive/MyDrive/videorag_prototype/data/msrvtt/videos/video4032.mp4"
+        },
+        {
+          "video_id": "video2668",
+          "caption": "A breathtaking journey unfolds through stunning landscapes, showcasing vibrant green valleys and majestic snow-capped mountains, as people leisurely stroll across expansive meadows, explore serene lakes, and navigate winding paths, all set against the backdrop of a picturesque hotel nestled in a snowy terrain.",
+          "score": 0.294334352016449,
+          "video_path": "/content/drive/MyDrive/videorag_prototype/data/msrvtt/videos/video2668.mp4"
+        }
+      ]
+    },
+    "scene_4": {
+      "scene_id": 4,
+      "description": "Wide shot of alpine landscape, vast snowfields under clear blue sky",
+      "description_ko": "광활한 설원이 펼쳐진 고산 지대, 맑은 하늘",
+      "attributes": {
+        "time_of_day": "afternoon",
+        "season": "winter",
+        "mood": "bright",
+        "location": "outdoor"
+      },
+      "top5": [
+        {
+          "video_id": "video5695",
+          "caption": "A breathtaking panorama of the Grand Canyon unfolds, showcasing the striking red rock formations and layered cliffs under a clear blue sky, as the camera gradually pans across the vast landscape, revealing the intricate textures and shadows cast by the sun on the canyon's rugged terrain.",
+          "score": 0.7898949384689331,
+          "video_path": "/content/drive/MyDrive/videorag_prototype/data/msrvtt/videos/video5695.mp4"
+        },
+        {
+          "video_id": "video4032",
+          "caption": "Overlooking a serene, turquoise lake surrounded by a lush green forest, a sweeping aerial view captures the vibrant colors of nature, highlighted by the impressive rocky slopes and distant mountain peaks under a bright blue sky filled with fluffy white clouds.",
+          "score": 0.6200385689735413,
+          "video_path": "/content/drive/MyDrive/videorag_prototype/data/msrvtt/videos/video4032.mp4"
+        },
+        {
+          "video_id": "video4044",
+          "caption": "A serene landscape unfolds with rolling hills and lush greenery under a bright blue sky dotted with fluffy clouds, where a winding road leads towards the Abrams Falls Trailhead sign, inviting visitors to explore the natural beauty of the surrounding fields and dense forests.",
+          "score": 0.22632578015327454,
+          "video_path": "/content/drive/MyDrive/videorag_prototype/data/msrvtt/videos/video4044.mp4"
+        },
+        {
+          "video_id": "video6149",
+          "caption": "A stunning aerial view captures a vast, vibrant pink lake bordered by lush greenery on one side and a rocky shoreline leading to a blue ocean on the other, with the shimmering water reflecting the clear blue sky, highlighting the unique and striking contrast of colors in this serene natural setting.",
+          "score": 0.2244180142879486,
+          "video_path": "/content/drive/MyDrive/videorag_prototype/data/msrvtt/videos/video6149.mp4"
+        },
+        {
+          "video_id": "video3614",
+          "caption": "A serene landscape unfolds as the camera transitions from dark, illuminated orbs to a vibrant view of Saiko Lake, showcasing a picturesque village nestled among lush green fields and majestic mountains under a clear blue sky, with boats gently gliding across the lake's surface, highlighting the tranquil beauty of the setting.",
+          "score": 0.05179963633418083,
+          "video_path": "/content/drive/MyDrive/videorag_prototype/data/msrvtt/videos/video3614.mp4"
+        }
+      ]
+    }
+  },
+  "s05": {
+    "scene_1": {
+      "scene_id": 1,
+      "description": "A chef preparing food in a professional restaurant kitchen, busy atmosphere",
+      "description_ko": "식당 주방에서 음식을 준비하는 셰프, 분주한 분위기",
+      "attributes": {
+        "time_of_day": "afternoon",
+        "season": "spring",
+        "mood": "warm",
+        "location": "indoor"
+      },
+      "top5": [
+        {
+          "video_id": "video4372",
+          "caption": "A chef dressed in a white coat and black apron meticulously sautés vibrant green beans and yellow squash in a busy kitchen, skillfully plating the sautéed vegetables on a white dish while balancing a kitchen towel in one hand, demonstrating a blend of culinary expertise and urgency amidst the backdrop of fellow kitchen staff preparing various dishes.",
+          "score": 0.68101966381073,
+          "video_path": "/content/drive/MyDrive/videorag_prototype/data/msrvtt/videos/video4372.mp4"
+        },
+        {
+          "video_id": "video3855",
+          "caption": "A chef, dressed in a white uniform and gloves, stands in a professional kitchen, preparing for a cooking demonstration by arranging fresh ingredients such as shrimp, chopped vegetables, and a bowl of sauce on a countertop, while engaging the viewer with a focused expression and gesturing towards the ingredients.",
+          "score": 0.5606528520584106,
+          "video_path": "/content/drive/MyDrive/videorag_prototype/data/msrvtt/videos/video3855.mp4"
+        },
+        {
+          "video_id": "video6787",
+          "caption": "A chef in a professional kitchen prepares to place a pot of ingredients into an oven set to 160-170°C, demonstrating precise culinary techniques as he carefully handles the pot with a towel and adjusts the oven settings, showcasing a well-organized workspace filled with various cooking tools and equipment.",
+          "score": 0.5226218104362488,
+          "video_path": "/content/drive/MyDrive/videorag_prototype/data/msrvtt/videos/video6787.mp4"
+        },
+        {
+          "video_id": "video399",
+          "caption": "A chef meticulously prepares a dish in a bustling kitchen, skillfully scooping ingredients from a container filled with ice while surrounded by various seafood, as he engages in an interview, passionately explaining his culinary techniques and philosophy.",
+          "score": 0.29917293787002563,
+          "video_path": "/content/drive/MyDrive/videorag_prototype/data/msrvtt/videos/video399.mp4"
+        },
+        {
+          "video_id": "video6489",
+          "caption": "A chef is seen skillfully preparing a dish in a bustling kitchen, stirring a pot of boiling broth while simultaneously ladling ingredients into vibrant bowls, including fresh vegetables and noodles, amidst a backdrop of neatly stacked green and orange bowls, showcasing the organized chaos of a busy food stall.",
+          "score": 0.296772301197052,
+          "video_path": "/content/drive/MyDrive/videorag_prototype/data/msrvtt/videos/video6489.mp4"
+        }
+      ]
+    },
+    "scene_2": {
+      "scene_id": 2,
+      "description": "Close-up of hands chopping fresh vegetables on a wooden cutting board",
+      "description_ko": "나무 도마 위에서 채소를 써는 손 클로즈업",
+      "attributes": {
+        "time_of_day": "afternoon",
+        "season": "spring",
+        "mood": "warm",
+        "location": "indoor"
+      },
+      "top5": [
+        {
+          "video_id": "video6014",
+          "caption": "A person is seen skillfully chopping potatoes and onions on a wooden cutting board in a well-equipped kitchen, showcasing their culinary techniques, while later, a narrator enthusiastically discusses the importance of using quality knives, emphasizing their value and utility, before transitioning to the preparation of colorful vegetables like carrots and celery, neatly arranged in containers.",
+          "score": 0.28212738037109375,
+          "video_path": "/content/drive/MyDrive/videorag_prototype/data/msrvtt/videos/video6014.mp4"
+        },
+        {
+          "video_id": "video3360",
+          "caption": "A person skillfully slices potatoes on a wooden cutting board, ensuring each piece is cut to a uniform thickness resembling a finger, while providing instructions on how to further shape the slices into sticks, emphasizing the importance of consistency, before rinsing the cut potatoes under running water in a kitchen sink.",
+          "score": 0.2681942284107208,
+          "video_path": "/content/drive/MyDrive/videorag_prototype/data/msrvtt/videos/video3360.mp4"
+        },
+        {
+          "video_id": "video4402",
+          "caption": "A variety of fresh vegetables, including broccoli, Brussels sprouts, and cabbage, are displayed on a countertop, followed by a series of close-up shots where a person skillfully chops leafy greens and broccoli with a knife, showcasing the preparation process for a healthy meal in a modern kitchen setting.",
+          "score": 0.19272133708000183,
+          "video_path": "/content/drive/MyDrive/videorag_prototype/data/msrvtt/videos/video4402.mp4"
+        },
+        {
+          "video_id": "video3700",
+          "caption": "A person is preparing a dish in a kitchen setting, first whisking a creamy mixture in a bowl before skillfully chopping onions and celery on a cutting board, showcasing precise knife techniques as they create evenly sized pieces of vegetables for the recipe.",
+          "score": 0.16535526514053345,
+          "video_path": "/content/drive/MyDrive/videorag_prototype/data/msrvtt/videos/video3700.mp4"
+        },
+        {
+          "video_id": "video4385",
+          "caption": "A person is finely chopping green onions on a cutting board, skillfully using a knife to create small pieces, while a metal bowl filled with previously chopped green onions sits nearby, highlighting the preparation process in a well-lit kitchen setting with wooden surfaces.",
+          "score": -0.010366197675466537,
+          "video_path": "/content/drive/MyDrive/videorag_prototype/data/msrvtt/videos/video4385.mp4"
+        }
+      ]
+    },
+    "scene_3": {
+      "scene_id": 3,
+      "description": "Family cooking together around a kitchen island, laughing and talking",
+      "description_ko": "주방 아일랜드 주변에서 함께 요리하는 가족",
+      "attributes": {
+        "time_of_day": "evening",
+        "season": "spring",
+        "mood": "warm",
+        "location": "indoor"
+      },
+      "top5": [
+        {
+          "video_id": "video3664",
+          "caption": "Seated comfortably on a colorful couch, a group of four kids, two boys and two girls, devour a variety of sushi laid out on plates before them, while one boy, animated and expressive, passionately discusses something amusing, causing his friends to engage with laughter and playful banter, all amidst a cozy and lively atmosphere filled with vibrant decor and the casual chaos of a shared meal.",
+          "score": 0.7473182082176208,
+          "video_path": "/content/drive/MyDrive/videorag_prototype/data/msrvtt/videos/video3664.mp4"
+        },
+        {
+          "video_id": "video1158",
+          "caption": "A lively holiday gathering unfolds as a group of four friends, dressed in festive attire, joyfully engage in various activities around a decorated kitchen, with one person playfully shaking a mistletoe above their head, while another holds a reindeer plush toy, and laughter fills the air as they prepare holiday treats and celebrate amidst twinkling lights and colorful decorations.",
+          "score": 0.6403265595436096,
+          "video_path": "/content/drive/MyDrive/videorag_prototype/data/msrvtt/videos/video1158.mp4"
+        },
+        {
+          "video_id": "video5367",
+          "caption": "Two young girls, one with long hair and the other a toddler, are seated at a kitchen counter filled with various colorful candies and snacks, joyfully sharing and tasting the treats while laughing and engaging in playful interactions, creating a lively and cheerful atmosphere in a cozy home setting.",
+          "score": 0.6081333160400391,
+          "video_path": "/content/drive/MyDrive/videorag_prototype/data/msrvtt/videos/video5367.mp4"
+        },
+        {
+          "video_id": "video4692",
+          "caption": "A chef in a modern kitchen setting engages with two young adults, who are dressed in matching red aprons, as they prepare ingredients and discuss cooking techniques, while a larger group of smiling individuals poses in the background, suggesting a family-oriented theme.",
+          "score": 0.5858070254325867,
+          "video_path": "/content/drive/MyDrive/videorag_prototype/data/msrvtt/videos/video4692.mp4"
+        },
+        {
+          "video_id": "video1548",
+          "caption": "Amidst the dimly lit atmosphere of a kitchen, two children, a girl and a boy, huddle closely together in fear as they watch a shadowy figure move about, creating a tense and suspenseful moment filled with uncertainty and anticipation.",
+          "score": 0.5696454644203186,
+          "video_path": "/content/drive/MyDrive/videorag_prototype/data/msrvtt/videos/video1548.mp4"
+        }
+      ]
+    },
+    "scene_4": {
+      "scene_id": 4,
+      "description": "Steaming food being plated and served at a dining table",
+      "description_ko": "식탁에 김이 나는 음식이 담겨 차려지는 장면",
+      "attributes": {
+        "time_of_day": "evening",
+        "season": "spring",
+        "mood": "warm",
+        "location": "indoor"
+      },
+      "top5": [
+        {
+          "video_id": "video5591",
+          "caption": "A chef enthusiastically discusses his culinary creations in a cozy restaurant setting, showcasing a beautifully plated dish featuring grilled steak on a tortilla topped with fresh salsa and a perfectly cooked egg, while the camera captures the intricate details of the meal as it is sliced, revealing the vibrant yolk and rich green sauce, all amidst an inviting atmosphere filled with colorful drinks and additional appetizers in the background.",
+          "score": 1.1576972007751465,
+          "video_path": "/content/drive/MyDrive/videorag_prototype/data/msrvtt/videos/video5591.mp4"
+        },
+        {
+          "video_id": "video6407",
+          "caption": "A person carefully serves a cheesy, layered dish from a glass baking dish onto a plate, accompanied by a side of beans and rice, while drizzling a green sauce over the meal, all set against a warm kitchen backdrop with a speckled countertop.",
+          "score": 1.148337721824646,
+          "video_path": "/content/drive/MyDrive/videorag_prototype/data/msrvtt/videos/video6407.mp4"
+        },
+        {
+          "video_id": "video1093",
+          "caption": "A cheerful cook in a stylish kitchen prepares a delicious New York-style pasta and meatballs dish, showcasing sizzling meatballs in a pan, a beautifully plated serving of pasta topped with sauce and cheese, and the meticulous chopping of an onion, all while engaging the audience with her lively expressions and warm demeanor.",
+          "score": 0.9363350868225098,
+          "video_path": "/content/drive/MyDrive/videorag_prototype/data/msrvtt/videos/video1093.mp4"
+        },
+        {
+          "video_id": "video1148",
+          "caption": "A person is reaching for a bowl of vibrant green dish, possibly a salad or a vegetable preparation, on a round dining table adorned with an array of colorful dishes, including fried snacks and sweets, while the setting suggests a festive gathering with multiple guests seated around the table.",
+          "score": 0.8565147519111633,
+          "video_path": "/content/drive/MyDrive/videorag_prototype/data/msrvtt/videos/video1148.mp4"
+        },
+        {
+          "video_id": "video5118",
+          "caption": "A chef passionately discusses his culinary techniques while preparing a dish, skillfully frying fish in a pan, meticulously adding seasonings, and later arranging vibrant broccoli in a grill pan, ultimately presenting a beautifully plated dish that features the cooked broccoli alongside a rich sauce poured from a small jug, showcasing a blend of artistry and flavor in a modern kitchen setting.",
+          "score": 0.7444116473197937,
+          "video_path": "/content/drive/MyDrive/videorag_prototype/data/msrvtt/videos/video5118.mp4"
+        }
+      ]
+    }
+  },
+  "s06": {
+    "scene_1": {
+      "scene_id": 1,
+      "description": "A crowded sports stadium packed with cheering fans, aerial view",
+      "description_ko": "열띤 응원을 보내는 관중들로 가득 찬 스타디움, 항공 뷰",
+      "attributes": {
+        "time_of_day": "afternoon",
+        "season": "summer",
+        "mood": "dramatic",
+        "location": "outdoor"
+      },
+      "top5": [
+        {
+          "video_id": "video3346",
+          "caption": "A passionate crowd dressed in yellow fills the stadium, enthusiastically cheering and waving banners as the home team prepares for a crucial play, while a player in a white uniform stands poised on the field, seemingly ready to receive the snap amidst the electrifying atmosphere.",
+          "score": 0.4056193232536316,
+          "video_path": "/content/drive/MyDrive/videorag_prototype/data/msrvtt/videos/video3346.mp4"
+        },
+        {
+          "video_id": "video5960",
+          "caption": "A thrilling soccer match unfolds in a packed stadium, where players in blue and white jerseys engage in a tense moment on the field, with the scoreboard showing a tie at 7-7, while the enthusiastic crowd erupts in cheers and excitement as they anticipate a decisive play.",
+          "score": 0.29239538311958313,
+          "video_path": "/content/drive/MyDrive/videorag_prototype/data/msrvtt/videos/video5960.mp4"
+        },
+        {
+          "video_id": "video5805",
+          "caption": "A lively baseball game unfolds in a packed stadium, where a batter from the Philadelphia Phillies prepares to swing at a pitch from the Washington Nationals' pitcher, while fans, including a strikingly dressed woman with blonde hair and glasses, cheer enthusiastically from the stands, creating a vibrant atmosphere filled with anticipation and excitement.",
+          "score": 0.2556059956550598,
+          "video_path": "/content/drive/MyDrive/videorag_prototype/data/msrvtt/videos/video5805.mp4"
+        },
+        {
+          "video_id": "video4158",
+          "caption": "A dynamic soccer match unfolds as a player in a blue jersey races towards the goal, skillfully evading defenders, while the crowd erupts in anticipation; the scene culminates in a thrilling moment when the player scores, celebrating joyfully with a triumphant gesture, amidst a backdrop of cheering fans and vibrant stadium colors.",
+          "score": 0.16008129715919495,
+          "video_path": "/content/drive/MyDrive/videorag_prototype/data/msrvtt/videos/video4158.mp4"
+        },
+        {
+          "video_id": "video2383",
+          "caption": "Amidst a jubilant crowd in a packed stadium, players and coaches of the Atlanta Falcons celebrate a significant victory, with quarterback Matt Ryan raising his arms triumphantly as teammates and staff join in the ecstatic display of joy, highlighting the electrifying atmosphere and camaraderie on the field.",
+          "score": 0.03180253878235817,
+          "video_path": "/content/drive/MyDrive/videorag_prototype/data/msrvtt/videos/video2383.mp4"
+        }
+      ]
+    },
+    "scene_2": {
+      "scene_id": 2,
+      "description": "Soccer players running and dribbling on a green football pitch",
+      "description_ko": "초록색 축구장에서 달리며 드리블하는 선수들",
+      "attributes": {
+        "time_of_day": "afternoon",
+        "season": "summer",
+        "mood": "dramatic",
+        "location": "outdoor"
+      },
+      "top5": [
+        {
+          "video_id": "video3998",
+          "caption": "A skilled player in a vibrant red jersey expertly maneuvers the ball past defenders in blue and white stripes on a lush green pitch, showcasing impressive footwork and agility as he navigates through tight spaces, while teammates and opponents alike are positioned strategically around him, creating a dynamic and competitive atmosphere typical of a high-stakes football match.",
+          "score": 0.9234250783920288,
+          "video_path": "/content/drive/MyDrive/videorag_prototype/data/msrvtt/videos/video3998.mp4"
+        },
+        {
+          "video_id": "video6632",
+          "caption": "A thrilling soccer match unfolds as players in yellow and black jerseys sprint towards the goal, with one player skillfully breaking away from defenders and making a decisive run, while the goalkeeper in green prepares for an impending shot, ultimately leading to a moment of disappointment as the striker collapses in frustration after missing the opportunity to score.",
+          "score": 0.8531379103660583,
+          "video_path": "/content/drive/MyDrive/videorag_prototype/data/msrvtt/videos/video6632.mp4"
+        },
+        {
+          "video_id": "video29",
+          "caption": "A dynamic sequence unfolds as a football player skillfully evades defenders on the field, showcasing his agility and speed while sprinting towards the end zone, followed by a contrasting scene of a soccer player preparing to take a decisive shot on goal amidst a backdrop of empty stands, and culminating in a baseball pitcher winding up for a pitch, poised to deliver a fastball to the awaiting batter in a packed stadium.",
+          "score": 0.8474448919296265,
+          "video_path": "/content/drive/MyDrive/videorag_prototype/data/msrvtt/videos/video29.mp4"
+        },
+        {
+          "video_id": "video5589",
+          "caption": "A fast-paced rugby match unfolds on a vibrant green pitch, where players in red jerseys execute a series of strategic passes and evasive maneuvers, as one player skillfully breaks through the defense, sprinting towards the try line while being closely pursued by opponents in green, all amidst an enthusiastic crowd cheering from the sidelines.",
+          "score": 0.7829405665397644,
+          "video_path": "/content/drive/MyDrive/videorag_prototype/data/msrvtt/videos/video5589.mp4"
+        },
+        {
+          "video_id": "video879",
+          "caption": "A player in a bright red uniform skillfully maneuvers the ball on a lush green pitch, evading defenders in blue as he approaches the goal, showcasing impressive footwork and agility amidst an enthusiastic crowd in the stands.",
+          "score": 0.7816998958587646,
+          "video_path": "/content/drive/MyDrive/videorag_prototype/data/msrvtt/videos/video879.mp4"
+        }
+      ]
+    },
+    "scene_3": {
+      "scene_id": 3,
+      "description": "Athletes celebrating a goal, jumping and embracing in excitement",
+      "description_ko": "골을 축하하며 점프하고 포옹하는 선수들",
+      "attributes": {
+        "time_of_day": "afternoon",
+        "season": "summer",
+        "mood": "bright",
+        "location": "outdoor"
+      },
+      "top5": [
+        {
+          "video_id": "video6474",
+          "caption": "A jubilant celebration erupts among the Argentine players as they embrace each other tightly on the field after scoring a goal, while the ecstatic crowd in the stands, adorned in blue and white jerseys, waves flags and cheers passionately, creating an electrifying atmosphere in the stadium.",
+          "score": 0.7163345813751221,
+          "video_path": "/content/drive/MyDrive/videorag_prototype/data/msrvtt/videos/video6474.mp4"
+        },
+        {
+          "video_id": "video5661",
+          "caption": "Amidst an animated soccer setting, a group of players in vibrant orange jerseys celebrates enthusiastically, visibly expressing their excitement for a successful goal, as the scene shifts to a broader view of the field, showcasing both teams engaged in a tense match, with players strategically positioned and the opposing goalkeeper preparing to defend against an impending shot.",
+          "score": 0.28950974345207214,
+          "video_path": "/content/drive/MyDrive/videorag_prototype/data/msrvtt/videos/video5661.mp4"
+        },
+        {
+          "video_id": "video266",
+          "caption": "Celebrating a triumphant moment, two athletes from Thailand embrace joyfully on the track, with one proudly holding their national flag while the other beams with excitement, as they share their victory amidst a backdrop of cheering spectators and fellow competitors.",
+          "score": 0.2772122621536255,
+          "video_path": "/content/drive/MyDrive/videorag_prototype/data/msrvtt/videos/video266.mp4"
+        },
+        {
+          "video_id": "video3109",
+          "caption": "Celebrating a recent goal, players in red jerseys embrace and cheer in a packed arena, while moments later, a brawl erupts between players in red and white jerseys, escalating into a chaotic scene near the boards as teammates and officials attempt to separate the combatants amidst the intense atmosphere of the hockey match.",
+          "score": -0.05322745442390442,
+          "video_path": "/content/drive/MyDrive/videorag_prototype/data/msrvtt/videos/video3109.mp4"
+        },
+        {
+          "video_id": "video164",
+          "caption": "Amidst a lively crowd in a sports arena, two wrestlers, one wearing a white singlet and a red headgear, share an emotional embrace, celebrating a significant victory, while spectators, including friends and family, express joy and pride, creating a vibrant atmosphere filled with excitement and support.",
+          "score": -0.2045641988515854,
+          "video_path": "/content/drive/MyDrive/videorag_prototype/data/msrvtt/videos/video164.mp4"
+        }
+      ]
+    },
+    "scene_4": {
+      "scene_id": 4,
+      "description": "Stadium crowd wave passing through cheering spectators under floodlights at night",
+      "description_ko": "야간 조명 아래 응원단 사이로 파도타기가 퍼지는 스타디움",
+      "attributes": {
+        "time_of_day": "night",
+        "season": "summer",
+        "mood": "dramatic",
+        "location": "outdoor"
+      },
+      "top5": [
+        {
+          "video_id": "video4828",
+          "caption": "A figure dressed in a dark hooded jacket walks through a dimly lit tunnel, gradually emerging into a brightly lit stadium filled with cheering fans, while a group of onlookers, including a man in formal attire, watches intently from a nearby vantage point, their expressions reflecting a mix of anticipation and focus.",
+          "score": 0.3721279799938202,
+          "video_path": "/content/drive/MyDrive/videorag_prototype/data/msrvtt/videos/video4828.mp4"
+        },
+        {
+          "video_id": "video6947",
+          "caption": "A crowd of enthusiastic fans gathers at a lively nighttime event, where a well-dressed man with a microphone interacts with them, eliciting excited reactions, particularly from a smiling woman who waves her arms joyfully; the atmosphere is filled with energy as attendees cheer and display colorful lights, while the backdrop features banners and illuminated signs, highlighting the festive setting.",
+          "score": 0.3413713872432709,
+          "video_path": "/content/drive/MyDrive/videorag_prototype/data/msrvtt/videos/video6947.mp4"
+        },
+        {
+          "video_id": "video6012",
+          "caption": "Amidst a vibrant night sky illuminated by a spectacular fireworks display, a crowd gathers in a stadium, eagerly watching as colorful bursts of light explode overhead, while behind the scenes, a group of individuals enthusiastically celebrates the successful timing of the pyrotechnics, creating an atmosphere of excitement and joy.",
+          "score": 0.30196094512939453,
+          "video_path": "/content/drive/MyDrive/videorag_prototype/data/msrvtt/videos/video6012.mp4"
+        },
+        {
+          "video_id": "video1383",
+          "caption": "A lively concert scene unfolds as a charismatic male singer, dressed in black, passionately performs on stage, engaging a massive crowd of enthusiastic fans who wave flags and cheer, while a talented band featuring guitarists and drummers creates an electrifying atmosphere under bright stage lights and a vibrant backdrop.",
+          "score": 0.1717042326927185,
+          "video_path": "/content/drive/MyDrive/videorag_prototype/data/msrvtt/videos/video1383.mp4"
+        },
+        {
+          "video_id": "video6144",
+          "caption": "A crowd of enthusiastic fans fills a large indoor venue, eagerly reaching out to greet a charismatic figure with long hair and a black shirt as he walks down a central aisle, eventually making his way into a wrestling ring where he engages with the audience, smiling and gesturing to the cheering spectators who are capturing the moment on their phones.",
+          "score": 0.035535216331481934,
+          "video_path": "/content/drive/MyDrive/videorag_prototype/data/msrvtt/videos/video6144.mp4"
+        }
+      ]
+    }
+  },
+  "s07": {
+    "scene_1": {
+      "scene_id": 1,
+      "description": "A dog running freely along a sandy beach at sunset, waves in background",
+      "description_ko": "석양 무렵 모래사장을 자유롭게 달리는 개, 파도 소리",
+      "attributes": {
+        "time_of_day": "evening",
+        "season": "summer",
+        "mood": "warm",
+        "location": "outdoor"
+      },
+      "top5": [
+        {
+          "video_id": "video434",
+          "caption": "A pod of whales gracefully swims through the shimmering blue waters, showcasing their sleek bodies against the backdrop of a stunning glacial landscape, before the scene transitions to a serene beach at sunset, where gentle waves lap against the sandy shore, illuminated by the warm glow of the setting sun filtering through lush greenery.",
+          "score": 0.7940919995307922,
+          "video_path": "/content/drive/MyDrive/videorag_prototype/data/msrvtt/videos/video434.mp4"
+        },
+        {
+          "video_id": "video1443",
+          "caption": "Two dogs, one larger and one smaller, interact playfully in a vibrant, stylized setting characterized by bold colors and abstract patterns, as they move around a sandy area, with the larger dog occasionally pausing to observe its surroundings while the smaller dog appears to nuzzle against it, creating a sense of companionship amidst the vivid backdrop.",
+          "score": 0.22599433362483978,
+          "video_path": "/content/drive/MyDrive/videorag_prototype/data/msrvtt/videos/video1443.mp4"
+        },
+        {
+          "video_id": "video580",
+          "caption": "A woman in a white bikini poses confidently by a shimmering pool, showcasing her figure, while later, she transitions to a serene beach setting where she playfully crawls along the shoreline in a yellow bikini, with gentle waves lapping at the sand and a picturesque sunset in the background.",
+          "score": -0.15563932061195374,
+          "video_path": "/content/drive/MyDrive/videorag_prototype/data/msrvtt/videos/video580.mp4"
+        },
+        {
+          "video_id": "video3498",
+          "caption": "A group of wild dogs observes intently as a wildebeest approaches the edge of a waterhole, where it hesitantly lowers its head to drink, while the surrounding sandy terrain and sparse vegetation highlight the arid setting, culminating in a dramatic moment when the wildebeest suddenly stumbles and splashes into the water, eliciting a mix of curiosity and excitement from the watching wild dogs.",
+          "score": -0.3292263448238373,
+          "video_path": "/content/drive/MyDrive/videorag_prototype/data/msrvtt/videos/video3498.mp4"
+        },
+        {
+          "video_id": "video2257",
+          "caption": "A group of children enjoys a sunny day at the beach, where one child is lying on a boogie board in the gentle waves, while two others wade through the shallow water, playfully interacting and preparing to join their friend in the surf, all set against a backdrop of clear turquoise waters and soft sandy shores.",
+          "score": -1.448216199874878,
+          "video_path": "/content/drive/MyDrive/videorag_prototype/data/msrvtt/videos/video2257.mp4"
+        }
+      ]
+    },
+    "scene_2": {
+      "scene_id": 2,
+      "description": "Ocean waves crashing powerfully against jagged coastal rocks, spray rising",
+      "description_ko": "들쭉날쭉한 해안 바위에 강하게 부서지는 파도, 물보라",
+      "attributes": {
+        "time_of_day": "afternoon",
+        "season": "autumn",
+        "mood": "dramatic",
+        "location": "outdoor"
+      },
+      "top5": [
+        {
+          "video_id": "video489",
+          "caption": "A solitary figure stands atop a rugged cliff, gazing out over the expansive blue waters below, where gentle waves ripple against the rocky shoreline, as distant mountains rise majestically in the background, creating a dramatic contrast between the vibrant landscape and the calm sea.",
+          "score": 0.7921571135520935,
+          "video_path": "/content/drive/MyDrive/videorag_prototype/data/msrvtt/videos/video489.mp4"
+        },
+        {
+          "video_id": "video1567",
+          "caption": "Rushing waters cascade over a rocky riverbed, creating frothy white waves that crash against the orange-hued stones lining the shore, while lush greenery frames the scene, hinting at a vibrant natural setting where the river flows energetically through a serene landscape.",
+          "score": 0.7080722451210022,
+          "video_path": "/content/drive/MyDrive/videorag_prototype/data/msrvtt/videos/video1567.mp4"
+        },
+        {
+          "video_id": "video2953",
+          "caption": "A woman on the beach prepares to enter the water, lifting a black surfboard overhead as powerful waves crash nearby, while a male surfer, captured in a reflective setting, passionately discusses the thrill and challenges of riding the intense shorebreak waves.",
+          "score": 0.45501646399497986,
+          "video_path": "/content/drive/MyDrive/videorag_prototype/data/msrvtt/videos/video2953.mp4"
+        },
+        {
+          "video_id": "video5167",
+          "caption": "A serene coastal scene unfolds as the camera captures a clear blue sky and calm waters, showcasing a picturesque shoreline dotted with sailboats and a distant town nestled among green hills, while the gentle waves lap against the rocky beach, creating a tranquil atmosphere.",
+          "score": 0.36802512407302856,
+          "video_path": "/content/drive/MyDrive/videorag_prototype/data/msrvtt/videos/video5167.mp4"
+        },
+        {
+          "video_id": "video6453",
+          "caption": "A young woman in a black and pink wetsuit skillfully rides a wave alongside a blonde male surfer in a yellow shirt, both showcasing their surfing abilities in a vibrant ocean setting, while moments of laughter and splashes create an energetic atmosphere as they navigate the rolling surf.",
+          "score": 0.23379766941070557,
+          "video_path": "/content/drive/MyDrive/videorag_prototype/data/msrvtt/videos/video6453.mp4"
+        }
+      ]
+    },
+    "scene_3": {
+      "scene_id": 3,
+      "description": "Birds flying over a peaceful lake at sunrise, calm water surface",
+      "description_ko": "일출 무렵 고요한 호수 위를 날아다니는 새들",
+      "attributes": {
+        "time_of_day": "dawn",
+        "season": "spring",
+        "mood": "bright",
+        "location": "outdoor"
+      },
+      "top5": [
+        {
+          "video_id": "video5071",
+          "caption": "A stunning aerial view captures a luxurious villa with a swimming pool nestled among lush greenery, overlooking a pristine turquoise beach and calm waters dotted with boats, creating a serene coastal paradise.",
+          "score": 1.3967339992523193,
+          "video_path": "/content/drive/MyDrive/videorag_prototype/data/msrvtt/videos/video5071.mp4"
+        },
+        {
+          "video_id": "video3225",
+          "caption": "A serene landscape unfolds as the camera glides over a tranquil body of water, reflecting the dramatic clouds above, while distant mountains rise majestically in the background, their rugged edges contrasting with the soft hues of the sky, creating a picturesque scene that captures the peacefulness of nature.",
+          "score": 1.3343735933303833,
+          "video_path": "/content/drive/MyDrive/videorag_prototype/data/msrvtt/videos/video3225.mp4"
+        },
+        {
+          "video_id": "video6149",
+          "caption": "A stunning aerial view captures a vast, vibrant pink lake bordered by lush greenery on one side and a rocky shoreline leading to a blue ocean on the other, with the shimmering water reflecting the clear blue sky, highlighting the unique and striking contrast of colors in this serene natural setting.",
+          "score": 1.212170124053955,
+          "video_path": "/content/drive/MyDrive/videorag_prototype/data/msrvtt/videos/video6149.mp4"
+        },
+        {
+          "video_id": "video3933",
+          "caption": "A stunning aerial view captures the serene beauty of turquoise waters surrounded by lush, green islands and rocky formations, showcasing the tranquil landscape as the camera glides smoothly over the vibrant scenery, highlighting the interplay of light and shadow on the water's surface and the intricate textures of the cliffs.",
+          "score": 1.1453384160995483,
+          "video_path": "/content/drive/MyDrive/videorag_prototype/data/msrvtt/videos/video3933.mp4"
+        },
+        {
+          "video_id": "video5167",
+          "caption": "A serene coastal scene unfolds as the camera captures a clear blue sky and calm waters, showcasing a picturesque shoreline dotted with sailboats and a distant town nestled among green hills, while the gentle waves lap against the rocky beach, creating a tranquil atmosphere.",
+          "score": 1.091901183128357,
+          "video_path": "/content/drive/MyDrive/videorag_prototype/data/msrvtt/videos/video5167.mp4"
+        }
+      ]
+    },
+    "scene_4": {
+      "scene_id": 4,
+      "description": "Time-lapse of clouds moving over a vast green meadow",
+      "description_ko": "광활한 초록 들판 위로 구름이 흘러가는 타임랩스",
+      "attributes": {
+        "time_of_day": "afternoon",
+        "season": "spring",
+        "mood": "bright",
+        "location": "outdoor"
+      },
+      "top5": [
+        {
+          "video_id": "video4044",
+          "caption": "A serene landscape unfolds with rolling hills and lush greenery under a bright blue sky dotted with fluffy clouds, where a winding road leads towards the Abrams Falls Trailhead sign, inviting visitors to explore the natural beauty of the surrounding fields and dense forests.",
+          "score": 1.3129560947418213,
+          "video_path": "/content/drive/MyDrive/videorag_prototype/data/msrvtt/videos/video4044.mp4"
+        },
+        {
+          "video_id": "video3699",
+          "caption": "A serene landscape unfolds, showcasing lush green mountains and rolling hills, interspersed with patches of fog that drift over the peaks, while a rustic thatched-roof structure hints at human presence amidst the natural beauty, suggesting a harmonious coexistence between the rural setting and the majestic terrain.",
+          "score": 1.2152553796768188,
+          "video_path": "/content/drive/MyDrive/videorag_prototype/data/msrvtt/videos/video3699.mp4"
+        },
+        {
+          "video_id": "video855",
+          "caption": "A serene landscape unfolds as two figures stand on a rocky outcrop overlooking a tranquil body of water, transitioning to sweeping views of lush green hills dotted with trees, followed by a drive along a winding road flanked by dense foliage, eventually leading into a quaint town with charming historic buildings lining the street under a clear blue sky.",
+          "score": 1.1425830125808716,
+          "video_path": "/content/drive/MyDrive/videorag_prototype/data/msrvtt/videos/video855.mp4"
+        },
+        {
+          "video_id": "video3320",
+          "caption": "A close-up of a leaf shows signs of insect activity, with visible holes and a caterpillar crawling on it, before transitioning to sweeping aerial views of vast green fields and patches of dark forest, highlighting the contrast between the detailed microenvironment of the leaf and the expansive, serene landscape beyond.",
+          "score": 1.1165077686309814,
+          "video_path": "/content/drive/MyDrive/videorag_prototype/data/msrvtt/videos/video3320.mp4"
+        },
+        {
+          "video_id": "video4898",
+          "caption": "A serene landscape unfolds with majestic snow-capped mountains reflecting in a tranquil lake, surrounded by lush green meadows where a group of horses grazes peacefully, while misty trails wind through dense forests, creating a picturesque and idyllic setting that captures the beauty of nature.",
+          "score": 1.0056426525115967,
+          "video_path": "/content/drive/MyDrive/videorag_prototype/data/msrvtt/videos/video4898.mp4"
+        }
+      ]
+    }
+  },
+  "s08": {
+    "scene_1": {
+      "scene_id": 1,
+      "description": "Crowds gathering in a city square at night, anticipating celebration",
+      "description_ko": "축제를 기다리며 도심 광장에 모이는 군중, 야간",
+      "attributes": {
+        "time_of_day": "night",
+        "season": "winter",
+        "mood": "dramatic",
+        "location": "outdoor"
+      },
+      "top5": [
+        {
+          "video_id": "video3181",
+          "caption": "Amidst a tense atmosphere in front of the Greek Parliament, large crowds of protesters gather, holding banners and chanting against austerity measures, while the scene escalates as some individuals ignite flares and create fires on the streets, illuminating the night and highlighting the urgency of the ongoing Greece debt crisis.",
+          "score": 1.1761441230773926,
+          "video_path": "/content/drive/MyDrive/videorag_prototype/data/msrvtt/videos/video3181.mp4"
+        },
+        {
+          "video_id": "video6169",
+          "caption": "A lively crowd gathers on a bustling street, where a group of young adults, holding drinks, excitedly interacts with a mounted police officer and their horse, creating a festive atmosphere filled with laughter and camaraderie amidst the backdrop of city lights and law enforcement presence.",
+          "score": 0.7023029327392578,
+          "video_path": "/content/drive/MyDrive/videorag_prototype/data/msrvtt/videos/video6169.mp4"
+        },
+        {
+          "video_id": "video4859",
+          "caption": "A bustling crowd gathers in a large open area surrounded by densely packed buildings, where the remains of a historical structure, possibly a temple, are visible amidst ongoing construction and debris, highlighting the contrast between the vibrant community life and the remnants of past architecture in a city recovering from disaster.",
+          "score": 0.6101601123809814,
+          "video_path": "/content/drive/MyDrive/videorag_prototype/data/msrvtt/videos/video4859.mp4"
+        },
+        {
+          "video_id": "video2118",
+          "caption": "A group of people, including a man with a prominent beard and green cap, navigate through a bustling theater lobby adorned with vibrant lights and a striking animal sculpture, before transitioning to the lively streets of Times Square, where colorful billboards illuminate the night and crowds gather amidst the sounds of the city.",
+          "score": 0.5551954507827759,
+          "video_path": "/content/drive/MyDrive/videorag_prototype/data/msrvtt/videos/video2118.mp4"
+        },
+        {
+          "video_id": "video5140",
+          "caption": "A large crowd gathers in a vibrant public space, passionately waving flags and holding up signs, as they engage in a demonstration that appears to focus on significant social or political issues, with many individuals expressing their sentiments through chants and raised fists, while a colorful array of banners and umbrellas adds to the lively atmosphere of the event.",
+          "score": 0.5090935230255127,
+          "video_path": "/content/drive/MyDrive/videorag_prototype/data/msrvtt/videos/video5140.mp4"
+        }
+      ]
+    },
+    "scene_2": {
+      "scene_id": 2,
+      "description": "Fireworks exploding in colorful bursts over a city skyline at midnight",
+      "description_ko": "자정, 도심 스카이라인 위로 폭발하는 화려한 불꽃놀이",
+      "attributes": {
+        "time_of_day": "night",
+        "season": "winter",
+        "mood": "dramatic",
+        "location": "outdoor"
+      },
+      "top5": [
+        {
+          "video_id": "video6052",
+          "caption": "Amidst the neon-lit chaos of a rain-soaked Times Square, a series of explosive events unfold as vibrant electrical arcs and fiery blasts erupt from the towering digital billboards, illuminating the darkened streets and casting a surreal glow over the scattered emergency vehicles and debris, suggesting a dramatic confrontation or disaster in this urban landscape.",
+          "score": 1.1961950063705444,
+          "video_path": "/content/drive/MyDrive/videorag_prototype/data/msrvtt/videos/video6052.mp4"
+        },
+        {
+          "video_id": "video1893",
+          "caption": "A spectacular fireworks display erupts around the iconic London Eye, illuminating the night sky with vibrant bursts of pink, orange, and gold, while the surrounding buildings reflect the dazzling colors, creating a festive atmosphere that captures the excitement of a celebratory event.",
+          "score": 1.1028157472610474,
+          "video_path": "/content/drive/MyDrive/videorag_prototype/data/msrvtt/videos/video1893.mp4"
+        },
+        {
+          "video_id": "video5366",
+          "caption": "A vibrant fireworks display lights up the night sky over a waterfront setting, with colorful bursts of red, white, and blue illuminating the scene as spectators watch in awe, silhouetted against the dazzling backdrop of sparkling explosions and shimmering reflections on the water.",
+          "score": 1.0947322845458984,
+          "video_path": "/content/drive/MyDrive/videorag_prototype/data/msrvtt/videos/video5366.mp4"
+        },
+        {
+          "video_id": "video5925",
+          "caption": "A vibrant display of fireworks lights up the night sky, with bursts of colorful explosions in shades of red, blue, and gold, creating intricate patterns as they ascend and bloom, while the dark backdrop enhances the brilliance of each firework's shimmering trails and cascading sparks.",
+          "score": 1.020331859588623,
+          "video_path": "/content/drive/MyDrive/videorag_prototype/data/msrvtt/videos/video5925.mp4"
+        },
+        {
+          "video_id": "video909",
+          "caption": "A spectacular fireworks display unfolds against a dark night sky, featuring intricate patterns of vibrant colors and dazzling bursts, culminating in a breathtaking finale that illuminates a towering structure, with cascading lights and smoke adding to the dramatic atmosphere.",
+          "score": 1.0073881149291992,
+          "video_path": "/content/drive/MyDrive/videorag_prototype/data/msrvtt/videos/video909.mp4"
+        }
+      ]
+    },
+    "scene_3": {
+      "scene_id": 3,
+      "description": "Slow motion fireworks reflecting in a river, colorful light on water",
+      "description_ko": "슬로모션으로 강물에 반사되는 불꽃놀이, 물 위의 빛",
+      "attributes": {
+        "time_of_day": "night",
+        "season": "winter",
+        "mood": "dramatic",
+        "location": "outdoor"
+      },
+      "top5": [
+        {
+          "video_id": "video5658",
+          "caption": "A spectacular fireworks display illuminates the night sky above a grand hotel, with vibrant bursts of color reflecting off the water, while the camera captures sweeping aerial views of the dazzling pyrotechnics that create intricate patterns and shapes, showcasing the festive atmosphere of the celebration.",
+          "score": 1.220919132232666,
+          "video_path": "/content/drive/MyDrive/videorag_prototype/data/msrvtt/videos/video5658.mp4"
+        },
+        {
+          "video_id": "video909",
+          "caption": "A spectacular fireworks display unfolds against a dark night sky, featuring intricate patterns of vibrant colors and dazzling bursts, culminating in a breathtaking finale that illuminates a towering structure, with cascading lights and smoke adding to the dramatic atmosphere.",
+          "score": 0.9071570038795471,
+          "video_path": "/content/drive/MyDrive/videorag_prototype/data/msrvtt/videos/video909.mp4"
+        },
+        {
+          "video_id": "video3518",
+          "caption": "A dazzling fireworks display illuminates the night sky above a prominent landmark, with vibrant bursts of red and gold cascading in intricate patterns, while a circular arrangement of lights reflects on the water below, creating a festive atmosphere that captivates viewers.",
+          "score": 0.6659111976623535,
+          "video_path": "/content/drive/MyDrive/videorag_prototype/data/msrvtt/videos/video3518.mp4"
+        },
+        {
+          "video_id": "video5366",
+          "caption": "A vibrant fireworks display lights up the night sky over a waterfront setting, with colorful bursts of red, white, and blue illuminating the scene as spectators watch in awe, silhouetted against the dazzling backdrop of sparkling explosions and shimmering reflections on the water.",
+          "score": 0.44054651260375977,
+          "video_path": "/content/drive/MyDrive/videorag_prototype/data/msrvtt/videos/video5366.mp4"
+        },
+        {
+          "video_id": "video5925",
+          "caption": "A vibrant display of fireworks lights up the night sky, with bursts of colorful explosions in shades of red, blue, and gold, creating intricate patterns as they ascend and bloom, while the dark backdrop enhances the brilliance of each firework's shimmering trails and cascading sparks.",
+          "score": 0.1761489063501358,
+          "video_path": "/content/drive/MyDrive/videorag_prototype/data/msrvtt/videos/video5925.mp4"
+        }
+      ]
+    },
+    "scene_4": {
+      "scene_id": 4,
+      "description": "People hugging and celebrating in the streets after midnight",
+      "description_ko": "자정이 지나 거리에서 포옹하며 기뻐하는 사람들",
+      "attributes": {
+        "time_of_day": "night",
+        "season": "winter",
+        "mood": "bright",
+        "location": "outdoor"
+      },
+      "top5": [
+        {
+          "video_id": "video3564",
+          "caption": "A young man wearing a red shirt enthusiastically engages with the camera on a bustling street at night, surrounded by the vibrant energy of people and vehicles, while visually intensified effects like flames create a dramatic backdrop, amplifying his animated expressions and gestures as he shares his excitement.",
+          "score": 0.34551185369491577,
+          "video_path": "/content/drive/MyDrive/videorag_prototype/data/msrvtt/videos/video3564.mp4"
+        },
+        {
+          "video_id": "video4827",
+          "caption": "A group of individuals is seen interacting outside a dimly lit venue, where one person with curly hair and sunglasses engages in conversation while wearing a graphic t-shirt, as others nearby appear to be waiting or observing, creating a lively atmosphere on the bustling street.",
+          "score": 0.2229914367198944,
+          "video_path": "/content/drive/MyDrive/videorag_prototype/data/msrvtt/videos/video4827.mp4"
+        },
+        {
+          "video_id": "video2118",
+          "caption": "A group of people, including a man with a prominent beard and green cap, navigate through a bustling theater lobby adorned with vibrant lights and a striking animal sculpture, before transitioning to the lively streets of Times Square, where colorful billboards illuminate the night and crowds gather amidst the sounds of the city.",
+          "score": 0.17365358769893646,
+          "video_path": "/content/drive/MyDrive/videorag_prototype/data/msrvtt/videos/video2118.mp4"
+        },
+        {
+          "video_id": "video1620",
+          "caption": "A young boy stands confidently in the foreground, making a gesture with his hand while wearing a graphic t-shirt, as a crowd of people seated on plastic chairs watches intently in the dimly lit street, transitioning to scenes of a bustling marketplace with a prominent monument and various vehicles, including motorcycles and a yellow taxi, navigating through the lively atmosphere filled with vendors and pedestrians.",
+          "score": 0.15106455981731415,
+          "video_path": "/content/drive/MyDrive/videorag_prototype/data/msrvtt/videos/video1620.mp4"
+        },
+        {
+          "video_id": "video4141",
+          "caption": "A chaotic scene unfolds as a crowd gathers along a barricaded street, where a figure with striking green hair is seen interacting with a group of people, while photographers and onlookers capture the moment amidst a backdrop of brick buildings and a scissor lift, highlighting the excitement and tension of the event.",
+          "score": 0.09207150340080261,
+          "video_path": "/content/drive/MyDrive/videorag_prototype/data/msrvtt/videos/video4141.mp4"
+        }
+      ]
+    }
+  },
+  "s09": {
+    "scene_1": {
+      "scene_id": 1,
+      "description": "Commuters rushing through a busy subway station in the morning",
+      "description_ko": "아침 지하철역을 분주하게 오가는 통근자들",
+      "attributes": {
+        "time_of_day": "morning",
+        "season": "autumn",
+        "mood": "neutral",
+        "location": "indoor"
+      },
+      "top5": [
+        {
+          "video_id": "video5724",
+          "caption": "As the camera captures various scenes within a bustling underground train station, individuals move purposefully along the platform, navigating their way past the arriving and departing trains, while a woman in a vibrant red dress walks confidently towards the nearby escalator, her black bag in hand, amidst the backdrop of directional signage and crowded commuters.",
+          "score": 0.5840318202972412,
+          "video_path": "/content/drive/MyDrive/videorag_prototype/data/msrvtt/videos/video5724.mp4"
+        },
+        {
+          "video_id": "video5469",
+          "caption": "A vintage steam train emerges from a dark tunnel, transitioning to scenes of an expansive, dilapidated train station with a glass roof, where passengers in period attire bustle about, some boarding the train while others navigate through the crowd, creating a lively yet nostalgic atmosphere filled with smoke and the echoes of travel.",
+          "score": 0.11689290404319763,
+          "video_path": "/content/drive/MyDrive/videorag_prototype/data/msrvtt/videos/video5469.mp4"
+        },
+        {
+          "video_id": "video5947",
+          "caption": "A white SUV attempts to navigate through a busy intersection, causing a near-collision with a tram while other vehicles, including a red bus and several cars, are halted in traffic, creating a chaotic scene in an urban setting characterized by tram lines and nearby shops.",
+          "score": 0.027030106633901596,
+          "video_path": "/content/drive/MyDrive/videorag_prototype/data/msrvtt/videos/video5947.mp4"
+        },
+        {
+          "video_id": "video2222",
+          "caption": "A bustling market scene unfolds with numerous people engaged in various activities, including vendors selling fresh produce and goods, shoppers navigating through crowded alleyways, and groups of individuals conversing, all set against a backdrop of colorful signage and stalls, highlighting the vibrant atmosphere of daily life in this lively urban environment.",
+          "score": 0.006345234811306,
+          "video_path": "/content/drive/MyDrive/videorag_prototype/data/msrvtt/videos/video2222.mp4"
+        },
+        {
+          "video_id": "video1275",
+          "caption": "A bustling train station scene unfolds as two electric trains, one red and one blue, maneuver along the tracks amidst a picturesque backdrop of mountains and quaint buildings, while passengers, including a woman in a lavender top, navigate the platform, and a clock indicates the passage of time in this vibrant setting.",
+          "score": -0.05625445395708084,
+          "video_path": "/content/drive/MyDrive/videorag_prototype/data/msrvtt/videos/video1275.mp4"
+        }
+      ]
+    },
+    "scene_2": {
+      "scene_id": 2,
+      "description": "Heavy traffic jam on a multi-lane highway during rush hour",
+      "description_ko": "러시아워 다차선 고속도로의 극심한 정체",
+      "attributes": {
+        "time_of_day": "morning",
+        "season": "autumn",
+        "mood": "neutral",
+        "location": "outdoor"
+      },
+      "top5": [
+        {
+          "video_id": "video1551",
+          "caption": "A motorcyclist navigates through heavy traffic on a busy highway, skillfully weaving between vehicles, including large trucks and cars, while maintaining a close watch on the surrounding vehicles to ensure safety and avoid potential collisions.",
+          "score": 0.5831276178359985,
+          "video_path": "/content/drive/MyDrive/videorag_prototype/data/msrvtt/videos/video1551.mp4"
+        },
+        {
+          "video_id": "video5947",
+          "caption": "A white SUV attempts to navigate through a busy intersection, causing a near-collision with a tram while other vehicles, including a red bus and several cars, are halted in traffic, creating a chaotic scene in an urban setting characterized by tram lines and nearby shops.",
+          "score": 0.5811362862586975,
+          "video_path": "/content/drive/MyDrive/videorag_prototype/data/msrvtt/videos/video5947.mp4"
+        },
+        {
+          "video_id": "video6001",
+          "caption": "At a busy intersection illuminated by streetlights on a rainy night, multiple vehicles, including trucks and cars, navigate through changing traffic signals, with one truck appearing to make a sudden left turn while other vehicles, caught in the green light, continue to move forward, creating a tense moment as they approach the intersection.",
+          "score": 0.4760454595088959,
+          "video_path": "/content/drive/MyDrive/videorag_prototype/data/msrvtt/videos/video6001.mp4"
+        },
+        {
+          "video_id": "video2437",
+          "caption": "A group of motorcyclists navigates a busy highway, weaving through traffic as they approach a congested area, with several vehicles, including trucks and cars, lining the lanes, while the rider's perspective captures the vibrant blue sky and the overhead bridge, emphasizing the dynamic nature of their ride.",
+          "score": 0.4461064040660858,
+          "video_path": "/content/drive/MyDrive/videorag_prototype/data/msrvtt/videos/video2437.mp4"
+        },
+        {
+          "video_id": "video3054",
+          "caption": "Amidst a severe snowstorm, a blue bus and a red truck navigate a treacherous, icy road, with visibility drastically reduced as swirling snow obscures the surroundings, while the truck appears to be maneuvering closely behind the bus, highlighting the challenging driving conditions and the urgency of caution in such hazardous weather.",
+          "score": 0.3433251678943634,
+          "video_path": "/content/drive/MyDrive/videorag_prototype/data/msrvtt/videos/video3054.mp4"
+        }
+      ]
+    },
+    "scene_3": {
+      "scene_id": 3,
+      "description": "Aerial view of congested freeway interchange at peak hours",
+      "description_ko": "혼잡 시간대 고속도로 인터체인지 항공 뷰",
+      "attributes": {
+        "time_of_day": "morning",
+        "season": "autumn",
+        "mood": "neutral",
+        "location": "outdoor"
+      },
+      "top5": [
+        {
+          "video_id": "video3497",
+          "caption": "A player pilots a P-996 Lazer fighter jet through a vibrant cityscape at dusk, showcasing impressive aerial maneuvers above illuminated buildings, before transitioning to a map view that highlights a specific location near Fort Zancudo, ultimately leading to a ground scene where the player approaches a checkpoint in a vehicle, suggesting a strategic mission or objective.",
+          "score": 0.6086996793746948,
+          "video_path": "/content/drive/MyDrive/videorag_prototype/data/msrvtt/videos/video3497.mp4"
+        },
+        {
+          "video_id": "video6325",
+          "caption": "A cyclist navigates through a busy urban intersection, where a mix of cars and pedestrians creates a bustling atmosphere, while the camera captures the cyclist's perspective as they approach a crowded street filled with yellow taxis and buses, highlighting the vibrant yet chaotic nature of city life.",
+          "score": 0.5925173759460449,
+          "video_path": "/content/drive/MyDrive/videorag_prototype/data/msrvtt/videos/video6325.mp4"
+        },
+        {
+          "video_id": "video2437",
+          "caption": "A group of motorcyclists navigates a busy highway, weaving through traffic as they approach a congested area, with several vehicles, including trucks and cars, lining the lanes, while the rider's perspective captures the vibrant blue sky and the overhead bridge, emphasizing the dynamic nature of their ride.",
+          "score": 0.4694492220878601,
+          "video_path": "/content/drive/MyDrive/videorag_prototype/data/msrvtt/videos/video2437.mp4"
+        },
+        {
+          "video_id": "video1883",
+          "caption": "A series of traffic scenes unfolds, beginning with a damaged black car attempting to maneuver around a large truck on a busy road, followed by a congested urban street where various vehicles, including a distinctive green car, navigate through heavy traffic, and culminating in a rural highway where a white object suddenly appears on the road, causing a nearby car to swerve sharply to avoid a collision.",
+          "score": 0.26444077491760254,
+          "video_path": "/content/drive/MyDrive/videorag_prototype/data/msrvtt/videos/video1883.mp4"
+        },
+        {
+          "video_id": "video2480",
+          "caption": "Aerial views capture a rugged, rocky landscape characterized by steep cliffs and scattered boulders, with the camera occasionally panning to reveal expansive desert terrain dotted with distant hills and patches of greenery, suggesting a journey through a remote and arid environment.",
+          "score": 0.21985749900341034,
+          "video_path": "/content/drive/MyDrive/videorag_prototype/data/msrvtt/videos/video2480.mp4"
+        }
+      ]
+    },
+    "scene_4": {
+      "scene_id": 4,
+      "description": "Foggy morning city street with commuters walking to work",
+      "description_ko": "안개 낀 아침 도시 거리, 출근하는 사람들",
+      "attributes": {
+        "time_of_day": "morning",
+        "season": "autumn",
+        "mood": "cool",
+        "location": "outdoor"
+      },
+      "top5": [
+        {
+          "video_id": "video3631",
+          "caption": "A young man in a green jacket, navigating through a bustling urban street filled with pedestrians, appears to be playfully bumping into a woman in a black coat, while others around them continue with their daily routines, creating a lively and dynamic atmosphere.",
+          "score": -0.953179657459259,
+          "video_path": "/content/drive/MyDrive/videorag_prototype/data/msrvtt/videos/video3631.mp4"
+        },
+        {
+          "video_id": "video4608",
+          "caption": "A young man in a white shirt, carrying a camera bag, walks through a bustling street filled with vendors and pedestrians, while the sun sets, casting a warm glow over the scene, highlighting the vibrant atmosphere of daily life in a crowded marketplace.",
+          "score": -1.1308183670043945,
+          "video_path": "/content/drive/MyDrive/videorag_prototype/data/msrvtt/videos/video4608.mp4"
+        },
+        {
+          "video_id": "video6417",
+          "caption": "A construction worker in a yellow hard hat rushes down a staircase, energetically navigating through the building, while in another scene, a crowd of sharply dressed individuals emerges from an office building onto a bustling city sidewalk, creating a sense of urgency as they cross the street together amidst the backdrop of honking cars and busy urban life.",
+          "score": -1.3955943584442139,
+          "video_path": "/content/drive/MyDrive/videorag_prototype/data/msrvtt/videos/video6417.mp4"
+        },
+        {
+          "video_id": "video3119",
+          "caption": "A young man in a green jacket surprisingly playfully approaches a woman in a black coat on a bustling city street, creating an amusing interaction that catches the attention of passersby, while the surrounding urban setting features people walking, a red awning, and hinting at a lively atmosphere filled with movement and curiosity.",
+          "score": -1.4348630905151367,
+          "video_path": "/content/drive/MyDrive/videorag_prototype/data/msrvtt/videos/video3119.mp4"
+        },
+        {
+          "video_id": "video1951",
+          "caption": "Amidst a cloudy Parisian backdrop, a diverse group of individuals engages in various activities along the Seine River, where a sleek boat prepares for departure, while a man in a beret checks his watch near the iconic Musée d'Orsay, and pedestrians stroll by, showcasing the vibrant urban life and distinct architecture of the city.",
+          "score": -1.4612895250320435,
+          "video_path": "/content/drive/MyDrive/videorag_prototype/data/msrvtt/videos/video1951.mp4"
+        }
+      ]
+    }
+  },
+  "s10": {
+    "scene_1": {
+      "scene_id": 1,
+      "description": "Cherry blossoms falling in a park on a bright spring morning",
+      "description_ko": "봄 화창한 아침, 공원에 흩날리는 벚꽃",
+      "attributes": {
+        "time_of_day": "morning",
+        "season": "spring",
+        "mood": "bright",
+        "location": "outdoor"
+      },
+      "top5": [
+        {
+          "video_id": "video539",
+          "caption": "Vibrant autumn colors dominate the expansive landscape, showcasing a breathtaking aerial view of rolling hills and dense forests, where shades of orange, red, and yellow intermingle with patches of green, while a distant white structure peeks through the foliage, hinting at human presence amidst the natural beauty.",
+          "score": -0.01832442730665207,
+          "video_path": "/content/drive/MyDrive/videorag_prototype/data/msrvtt/videos/video539.mp4"
+        },
+        {
+          "video_id": "video4044",
+          "caption": "A serene landscape unfolds with rolling hills and lush greenery under a bright blue sky dotted with fluffy clouds, where a winding road leads towards the Abrams Falls Trailhead sign, inviting visitors to explore the natural beauty of the surrounding fields and dense forests.",
+          "score": -0.3160315454006195,
+          "video_path": "/content/drive/MyDrive/videorag_prototype/data/msrvtt/videos/video4044.mp4"
+        },
+        {
+          "video_id": "video2880",
+          "caption": "A young woman with a stylish bob haircut and soft makeup poses confidently against a pastel background, while another girl playfully appears in the background; she winks charmingly at the camera, showcasing her beauty, before transitioning to a serene outdoor setting lined with cherry blossom trees, where she discusses a romantic makeup look and holds up a skincare product, emphasizing its moisturizing benefits.",
+          "score": -0.5880579948425293,
+          "video_path": "/content/drive/MyDrive/videorag_prototype/data/msrvtt/videos/video2880.mp4"
+        },
+        {
+          "video_id": "video2547",
+          "caption": "A group of children enthusiastically slides down a vibrant green water slide at a sunny outdoor water park, seemingly ignoring their teacher's warnings about sunscreen, while the bright sun shines down on them, creating a warm atmosphere that hints at the potential for sunburn after hours of fun in the heat.",
+          "score": -0.9558330774307251,
+          "video_path": "/content/drive/MyDrive/videorag_prototype/data/msrvtt/videos/video2547.mp4"
+        },
+        {
+          "video_id": "video5725",
+          "caption": "In a vibrant outdoor setting, a nervous but hopeful young wolf presents a pink flower to a charming female fox, whose initially surprised expression transforms into excitement and delight, while a nearby gray wolf joyfully showcases a tree with vibrant pink blossoms, creating a lively atmosphere filled with budding emotions and playful interactions.",
+          "score": -1.431668996810913,
+          "video_path": "/content/drive/MyDrive/videorag_prototype/data/msrvtt/videos/video5725.mp4"
+        }
+      ]
+    },
+    "scene_2": {
+      "scene_id": 2,
+      "description": "People having a picnic on green grass in a sunny park",
+      "description_ko": "화창한 공원 잔디밭에서 피크닉을 즐기는 사람들",
+      "attributes": {
+        "time_of_day": "afternoon",
+        "season": "spring",
+        "mood": "bright",
+        "location": "outdoor"
+      },
+      "top5": [
+        {
+          "video_id": "video2668",
+          "caption": "A breathtaking journey unfolds through stunning landscapes, showcasing vibrant green valleys and majestic snow-capped mountains, as people leisurely stroll across expansive meadows, explore serene lakes, and navigate winding paths, all set against the backdrop of a picturesque hotel nestled in a snowy terrain.",
+          "score": 0.6700519919395447,
+          "video_path": "/content/drive/MyDrive/videorag_prototype/data/msrvtt/videos/video2668.mp4"
+        },
+        {
+          "video_id": "video6793",
+          "caption": "A group of friends engages in various social activities, transitioning from a sunny outdoor gathering on the grass to a lively bowling alley, and then to a cozy indoor setting where playful conversations and laughter occur, highlighting a central character who appears both amused and slightly overwhelmed by the attention, culminating in a joyful selfie moment with friends against a picturesque backdrop.",
+          "score": 0.4065365195274353,
+          "video_path": "/content/drive/MyDrive/videorag_prototype/data/msrvtt/videos/video6793.mp4"
+        },
+        {
+          "video_id": "video6949",
+          "caption": "A group of young people enjoys a sunny day by the water, with one girl playfully waving at the camera while another stands nearby, and later, the scene shifts to a parking area filled with colorful vehicles, including small trucks and motorcycles, surrounded by lush greenery, before transitioning to a scenic road lined with trees and a sign indicating a nearby destination.",
+          "score": -0.22456002235412598,
+          "video_path": "/content/drive/MyDrive/videorag_prototype/data/msrvtt/videos/video6949.mp4"
+        },
+        {
+          "video_id": "video2547",
+          "caption": "A group of children enthusiastically slides down a vibrant green water slide at a sunny outdoor water park, seemingly ignoring their teacher's warnings about sunscreen, while the bright sun shines down on them, creating a warm atmosphere that hints at the potential for sunburn after hours of fun in the heat.",
+          "score": -0.26806530356407166,
+          "video_path": "/content/drive/MyDrive/videorag_prototype/data/msrvtt/videos/video2547.mp4"
+        },
+        {
+          "video_id": "video5309",
+          "caption": "A young man named Mark sits on the grass in a vibrant courtyard surrounded by modern architecture, where various groups of people are casually walking and engaging in conversation, while he shares insights about his experiences in a relaxed and sunny atmosphere.",
+          "score": -0.5424094200134277,
+          "video_path": "/content/drive/MyDrive/videorag_prototype/data/msrvtt/videos/video5309.mp4"
+        }
+      ]
+    },
+    "scene_3": {
+      "scene_id": 3,
+      "description": "A child running through a field of blooming wildflowers",
+      "description_ko": "야생화가 만발한 들판을 달리는 아이",
+      "attributes": {
+        "time_of_day": "afternoon",
+        "season": "spring",
+        "mood": "bright",
+        "location": "outdoor"
+      },
+      "top5": [
+        {
+          "video_id": "video2292",
+          "caption": "Amidst a lush, vibrant garden filled with blooming flowers in shades of pink and white, a woman in a flowing white dress gracefully walks along a wooden bridge, engaging in a serene moment of reflection, while a man stands nearby, observing her movements with a sense of admiration as she playfully gestures and interacts with the natural beauty surrounding them.",
+          "score": 0.23410524427890778,
+          "video_path": "/content/drive/MyDrive/videorag_prototype/data/msrvtt/videos/video2292.mp4"
+        },
+        {
+          "video_id": "video5649",
+          "caption": "A small black-and-white toy dog and a brown toy horse are seen exploring a lush, green grassy area, with the camera capturing close-up shots of their movements as they navigate through the tall blades of grass, highlighting their playful interactions and the vibrant natural setting around them.",
+          "score": -0.15777142345905304,
+          "video_path": "/content/drive/MyDrive/videorag_prototype/data/msrvtt/videos/video5649.mp4"
+        },
+        {
+          "video_id": "video5930",
+          "caption": "Two young children play joyfully in a sandy area beneath trees, with one child holding a long stick while the other runs nearby, casting elongated shadows on the ground, as an adult can be seen in the background adjusting equipment attached to the trees, suggesting a setup for an outdoor activity or game.",
+          "score": -1.0433287620544434,
+          "video_path": "/content/drive/MyDrive/videorag_prototype/data/msrvtt/videos/video5930.mp4"
+        },
+        {
+          "video_id": "video242",
+          "caption": "Amidst a backdrop of charred trees and smoke, a figure dressed in white walks through a serene landscape filled with blooming flowers, contrasting the remnants of destruction while the sun casts a warm glow, suggesting a theme of renewal and hope.",
+          "score": -1.2341904640197754,
+          "video_path": "/content/drive/MyDrive/videorag_prototype/data/msrvtt/videos/video242.mp4"
+        },
+        {
+          "video_id": "video2550",
+          "caption": "Amidst a vibrant flower shop filled with colorful blooms, a young couple engages in a light-hearted conversation, sharing playful glances and smiles, as the girl playfully leans in closer to the boy, hinting at a budding romantic connection between them.",
+          "score": -1.8381460905075073,
+          "video_path": "/content/drive/MyDrive/videorag_prototype/data/msrvtt/videos/video2550.mp4"
+        }
+      ]
+    },
+    "scene_4": {
+      "scene_id": 4,
+      "description": "Golden sunset over a flower field, warm glowing light",
+      "description_ko": "꽃밭 위로 지는 황금빛 노을",
+      "attributes": {
+        "time_of_day": "evening",
+        "season": "spring",
+        "mood": "warm",
+        "location": "outdoor"
+      },
+      "top5": [
+        {
+          "video_id": "video1453",
+          "caption": "A pair of hands meticulously folds a red paper airplane on a dark surface, transitioning to a cozy indoor setting adorned with a vibrant painting of a flower field, where the camera captures glimpses of a well-organized room filled with bookshelves and warm lighting, suggesting a peaceful and creative atmosphere.",
+          "score": 0.16274923086166382,
+          "video_path": "/content/drive/MyDrive/videorag_prototype/data/msrvtt/videos/video1453.mp4"
+        },
+        {
+          "video_id": "video4044",
+          "caption": "A serene landscape unfolds with rolling hills and lush greenery under a bright blue sky dotted with fluffy clouds, where a winding road leads towards the Abrams Falls Trailhead sign, inviting visitors to explore the natural beauty of the surrounding fields and dense forests.",
+          "score": -0.003055388107895851,
+          "video_path": "/content/drive/MyDrive/videorag_prototype/data/msrvtt/videos/video4044.mp4"
+        },
+        {
+          "video_id": "video242",
+          "caption": "Amidst a backdrop of charred trees and smoke, a figure dressed in white walks through a serene landscape filled with blooming flowers, contrasting the remnants of destruction while the sun casts a warm glow, suggesting a theme of renewal and hope.",
+          "score": -0.12862351536750793,
+          "video_path": "/content/drive/MyDrive/videorag_prototype/data/msrvtt/videos/video242.mp4"
+        },
+        {
+          "video_id": "video2706",
+          "caption": "A mesmerizing journey unfolds as a silhouette of a woman lounges against a vibrant sunset by a tranquil body of water, transitioning to a cosmic scene where two figures stand in awe beneath a grand clock, surrounded by swirling galaxies, before shifting to a solitary man walking along a beach, framed by a breathtaking sunset that casts a warm glow over the landscape.",
+          "score": -0.30841898918151855,
+          "video_path": "/content/drive/MyDrive/videorag_prototype/data/msrvtt/videos/video2706.mp4"
+        },
+        {
+          "video_id": "video6580",
+          "caption": "A solemn scene unfolds as a man, holding a bouquet of roses, stands before a gravestone in a tranquil cemetery, reflecting on a poignant memory, while the warm light of the setting sun casts a gentle glow over the surroundings, highlighting the vibrant flowers and the quiet, contemplative atmosphere.",
+          "score": -0.44530409574508667,
+          "video_path": "/content/drive/MyDrive/videorag_prototype/data/msrvtt/videos/video6580.mp4"
+        }
+      ]
+    }
+  }
+}

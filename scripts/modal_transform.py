@@ -2,29 +2,42 @@
 modal_transform.py — VideoRAG Transform + Assemble API (Modal serverless GPU)
 
 Endpoints:
-  POST /transform  — FFmpeg 스타일 필터 적용 (즉시 반환)
+  POST /transform  — OpenCV 스타일 필터 적용 (즉시 반환)
   POST /assemble   — 전체 장면 조립 (DINOv2 전환 스코어링)
 
 Deploy:
-    modal deploy modal_transform.py
+    modal deploy scripts/modal_transform.py
 """
 
 import modal
 
 app = modal.App("videorag-transform")
 
-STYLE_FILTERS = {
-    "warm":        "colorbalance=rs=0.4:gs=0.1:bs=-0.3:rm=0.3:gm=0.05:bm=-0.2,eq=brightness=0.06:saturation=1.4:contrast=1.1",
-    "cool":        "colorbalance=rs=-0.3:gs=-0.05:bs=0.4:rm=-0.2:bm=0.25,eq=saturation=0.85:contrast=1.1",
-    "golden_hour": "colorbalance=rs=0.5:gs=0.2:bs=-0.4:rm=0.3:gm=0.1:bm=-0.25,eq=brightness=0.1:saturation=1.6:contrast=1.15",
-    "noir":        "hue=s=0,eq=contrast=1.7:brightness=-0.05",
-    "cinematic":   "eq=contrast=1.35:saturation=0.7:brightness=-0.04,vignette=angle=PI/4",
-    "documentary": "eq=contrast=1.15:saturation=0.75:brightness=0.04",
-    "dramatic":    "eq=contrast=1.6:saturation=1.6:brightness=-0.08",
-    "night":       "colorbalance=rs=-0.35:gs=-0.15:bs=0.45:rm=-0.2:bm=0.3,eq=brightness=-0.3:contrast=1.3:saturation=0.7",
-    "tense":       "colorbalance=rs=-0.2:bs=0.2:rm=-0.1:bm=0.1,eq=contrast=1.5:saturation=0.6:brightness=-0.15",
-    "vibrant":     "eq=saturation=2.2:contrast=1.25:brightness=0.04",
+# OpenCV 기반 스타일 파라미터
+# r/g/b_gain: 채널 곱셈 계수 (1.0 = 변화 없음)
+# r/g/b_add: 채널 덧셈 오프셋 (0~255 범위)
+# sat: 채도 배율 (1.0 = 변화 없음, HSV S채널 스케일)
+# bright: 밝기 오프셋 (-1.0~1.0, 255 곱해서 적용)
+# contrast: 대비 배율 (픽셀을 128 기준으로 스트레칭)
+STYLE_PARAMS = {
+    "warm":          dict(r_gain=1.25, r_add=15,  g_gain=1.0,  g_add=0,   b_gain=0.72, b_add=-8,  sat=1.3,  bright=0,     contrast=1.1),
+    "cool":          dict(r_gain=0.78, r_add=-5,  g_gain=0.92, g_add=0,   b_gain=1.22, b_add=12,  sat=0.88, bright=0,     contrast=1.1),
+    "golden_hour":   dict(r_gain=1.38, r_add=20,  g_gain=1.08, g_add=5,   b_gain=0.52, b_add=-22, sat=1.6,  bright=0.08,  contrast=1.15),
+    "documentary":   dict(r_gain=1.05, r_add=0,   g_gain=1.0,  g_add=0,   b_gain=0.96, b_add=0,   sat=0.72, bright=0.05,  contrast=1.2),
+    "dramatic":      dict(r_gain=1.0,  r_add=0,   g_gain=0.95, g_add=0,   b_gain=0.92, b_add=0,   sat=1.8,  bright=-0.08, contrast=1.8),
+    "night":         dict(r_gain=0.52, r_add=0,   g_gain=0.65, g_add=0,   b_gain=1.1,  b_add=0,   sat=0.75, bright=-0.28, contrast=1.35),
+    "tense":         dict(r_gain=0.72, r_add=-5,  g_gain=0.85, g_add=0,   b_gain=1.05, b_add=5,   sat=0.55, bright=-0.15, contrast=1.55),
+    "vibrant":       dict(r_gain=1.0,  r_add=0,   g_gain=1.0,  g_add=0,   b_gain=1.0,  b_add=0,   sat=2.4,  bright=0.04,  contrast=1.35),
+    "dawn":          dict(r_gain=0.85, r_add=-5,  g_gain=0.88, g_add=0,   b_gain=1.18, b_add=12,  sat=0.9,  bright=0.08,  contrast=0.95),
+    "dusk":          dict(r_gain=1.30, r_add=10,  g_gain=0.85, g_add=-5,  b_gain=0.65, b_add=-15, sat=1.5,  bright=0.05,  contrast=1.1),
+    "bleach_bypass": dict(r_gain=1.0,  r_add=0,   g_gain=1.0,  g_add=0,   b_gain=1.0,  b_add=0,   sat=0.3,  bright=-0.05, contrast=1.9),
+    "horror":        dict(r_gain=0.80, r_add=0,   g_gain=1.12, g_add=8,   b_gain=0.78, b_add=0,   sat=0.5,  bright=-0.1,  contrast=1.4),
+    "arctic":        dict(r_gain=0.78, r_add=-5,  g_gain=0.85, g_add=0,   b_gain=1.28, b_add=22,  sat=0.7,  bright=0.12,  contrast=1.05),
+    "sunset":        dict(r_gain=1.42, r_add=25,  g_gain=0.80, g_add=-10, b_gain=0.50, b_add=-25, sat=1.7,  bright=0,     contrast=1.2),
 }
+
+# 특수 효과 — 위 파라미터로 표현 불가능한 스타일
+SPECIAL_STYLES = {"noir", "cinematic", "vintage", "foggy"}
 
 
 def _download_dinov2():
@@ -59,6 +72,143 @@ class TransformModel:
         self.dino = torch.hub.load(
             "facebookresearch/dinov2", "dinov2_vits14"
         ).to("cuda").eval()
+
+    def _apply_style_frame(self, frame, style: str):
+        """OpenCV 프레임에 스타일 적용. BGR uint8 → BGR uint8."""
+        import numpy as np
+        import cv2
+
+        if style in SPECIAL_STYLES:
+            return self._apply_special_frame(frame, style)
+
+        p = STYLE_PARAMS.get(style, STYLE_PARAMS["cinematic"] if "cinematic" not in SPECIAL_STYLES else STYLE_PARAMS["documentary"])
+
+        # BGR 채널 분리
+        b, g, r = cv2.split(frame.astype(np.float32))
+
+        # 채널별 gain + add
+        r = r * p["r_gain"] + p["r_add"]
+        g = g * p["g_gain"] + p["g_add"]
+        b = b * p["b_gain"] + p["b_add"]
+
+        # 대비 (128 기준 스트레칭)
+        c = p["contrast"]
+        if c != 1.0:
+            r = (r - 128) * c + 128
+            g = (g - 128) * c + 128
+            b = (b - 128) * c + 128
+
+        # 밝기
+        br = p["bright"] * 255
+        r += br; g += br; b += br
+
+        frame_out = cv2.merge([
+            np.clip(b, 0, 255).astype(np.uint8),
+            np.clip(g, 0, 255).astype(np.uint8),
+            np.clip(r, 0, 255).astype(np.uint8),
+        ])
+
+        # 채도 (HSV S 채널 스케일)
+        if p["sat"] != 1.0:
+            hsv = cv2.cvtColor(frame_out, cv2.COLOR_BGR2HSV).astype(np.float32)
+            hsv[:, :, 1] = np.clip(hsv[:, :, 1] * p["sat"], 0, 255)
+            frame_out = cv2.cvtColor(hsv.astype(np.uint8), cv2.COLOR_HSV2BGR)
+
+        return frame_out
+
+    def _apply_special_frame(self, frame, style: str):
+        import numpy as np
+        import cv2
+
+        if style == "noir":
+            gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+            # 대비 강화
+            f = gray.astype(np.float32)
+            f = (f - 128) * 1.8 + 128 - 15
+            gray = np.clip(f, 0, 255).astype(np.uint8)
+            return cv2.cvtColor(gray, cv2.COLOR_GRAY2BGR)
+
+        elif style == "cinematic":
+            # Teal-orange: shadows → teal, highlights → orange
+            f = frame.astype(np.float32)
+            b, g, r = cv2.split(f)
+            # 밝기 마스크 (0=어두움, 1=밝음)
+            luma = (0.114 * b + 0.587 * g + 0.299 * r) / 255.0
+            # Shadows: 청록 (r↓, g약↑, b↑)
+            shadow_mask = np.clip(1.0 - luma * 2, 0, 1)
+            r -= shadow_mask * 18
+            g += shadow_mask * 6
+            b += shadow_mask * 20
+            # Highlights: 오렌지 (r↑, g약↑, b↓)
+            hi_mask = np.clip((luma - 0.5) * 2, 0, 1)
+            r += hi_mask * 20
+            g += hi_mask * 8
+            b -= hi_mask * 22
+            # 전체 채도 낮추고 대비 강화
+            frame_out = cv2.merge([
+                np.clip(b, 0, 255).astype(np.uint8),
+                np.clip(g, 0, 255).astype(np.uint8),
+                np.clip(r, 0, 255).astype(np.uint8),
+            ])
+            hsv = cv2.cvtColor(frame_out, cv2.COLOR_BGR2HSV).astype(np.float32)
+            hsv[:, :, 1] = np.clip(hsv[:, :, 1] * 0.65, 0, 255)
+            hsv[:, :, 2] = np.clip((hsv[:, :, 2].astype(np.float32) - 128) * 1.4 + 128 - 12, 0, 255)
+            return cv2.cvtColor(hsv.astype(np.uint8), cv2.COLOR_HSV2BGR)
+
+        elif style == "vintage":
+            # 세피아 + 페이드
+            f = frame.astype(np.float32)
+            b, g, r = cv2.split(f)
+            # 세피아 매트릭스
+            nr = np.clip(r * 0.393 + g * 0.769 + b * 0.189, 0, 255)
+            ng = np.clip(r * 0.349 + g * 0.686 + b * 0.168, 0, 255)
+            nb = np.clip(r * 0.272 + g * 0.534 + b * 0.131, 0, 255)
+            # 페이드: 어두운 부분을 밝게 올림 (faded look)
+            nr = nr * 0.85 + 20
+            ng = ng * 0.85 + 15
+            nb = nb * 0.80 + 10
+            return cv2.merge([
+                np.clip(nb, 0, 255).astype(np.uint8),
+                np.clip(ng, 0, 255).astype(np.uint8),
+                np.clip(nr, 0, 255).astype(np.uint8),
+            ])
+
+        elif style == "foggy":
+            # 채도 낮추기 + 흰색 헤이즈 오버레이
+            hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV).astype(np.float32)
+            hsv[:, :, 1] = np.clip(hsv[:, :, 1] * 0.45, 0, 255)
+            desaturated = cv2.cvtColor(hsv.astype(np.uint8), cv2.COLOR_HSV2BGR).astype(np.float32)
+            # 흰색 50% 블렌드로 헤이즈
+            haze = np.ones_like(desaturated) * 255
+            alpha = 0.42
+            result = desaturated * (1 - alpha) + haze * alpha
+            return np.clip(result, 0, 255).astype(np.uint8)
+
+        return frame
+
+    def _process_video_opencv(self, in_path: str, out_path: str, style: str):
+        """OpenCV로 프레임별 스타일 적용 후 ffmpeg로 h264 재인코딩."""
+        import cv2, os
+        cap = cv2.VideoCapture(in_path)
+        fps = cap.get(cv2.CAP_PROP_FPS) or 25.0
+        w = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+        h = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+        tmp = out_path + "_raw.mp4"
+        writer = cv2.VideoWriter(tmp, cv2.VideoWriter_fourcc(*'mp4v'), fps, (w, h))
+
+        while True:
+            ret, frame = cap.read()
+            if not ret:
+                break
+            writer.write(self._apply_style_frame(frame, style))
+
+        cap.release()
+        writer.release()
+        os.system(
+            f'ffmpeg -y -i {tmp} -vcodec libx264 -pix_fmt yuv420p '
+            f'-movflags +faststart {out_path} -loglevel error'
+        )
+        os.path.exists(tmp) and os.unlink(tmp)
 
     def _dino_sim(self, frame_a, frame_b) -> float:
         import torch
@@ -160,7 +310,6 @@ class TransformModel:
         from fastapi import FastAPI, Request
         from fastapi.middleware.cors import CORSMiddleware
         from fastapi.responses import JSONResponse
-        import shlex
 
         api = FastAPI()
         api.add_middleware(
@@ -187,7 +336,8 @@ class TransformModel:
             if not video_url:
                 return JSONResponse({"success": False, "error": "video_url required"}, status_code=400)
 
-            vf = STYLE_FILTERS.get(style, STYLE_FILTERS["cinematic"])
+            if style not in STYLE_PARAMS and style not in SPECIAL_STYLES:
+                style = "cinematic"
 
             try:
                 r = req.get(video_url, timeout=30)
@@ -201,13 +351,9 @@ class TransformModel:
             out_path = in_path.replace(".mp4", "_out.mp4")
 
             try:
-                ret = os.system(
-                    f'ffmpeg -y -i {shlex.quote(in_path)} -vf "{vf}" '
-                    f'-vcodec libx264 -pix_fmt yuv420p -movflags +faststart '
-                    f'{shlex.quote(out_path)} -loglevel error'
-                )
-                if ret != 0 or not os.path.exists(out_path):
-                    return JSONResponse({"success": False, "error": "ffmpeg filter failed"}, status_code=500)
+                model._process_video_opencv(in_path, out_path, style)
+                if not os.path.exists(out_path):
+                    return JSONResponse({"success": False, "error": "opencv processing failed"}, status_code=500)
 
                 with open(out_path, "rb") as f:
                     video_b64 = base64.b64encode(f.read()).decode()

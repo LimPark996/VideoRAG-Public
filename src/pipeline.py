@@ -8,9 +8,8 @@
 """
 
 import os
-import time
 import logging
-from typing import Optional, Dict, List, Set
+from typing import Optional, Dict
 
 from .data_models import (
     ClipResult, VideoRAGResult, LatencyTracker, ClipMeta, CurationState
@@ -19,7 +18,7 @@ from .input import QueryPreprocessor, PreprocessedQuery
 from .phase0_indexing import VideoIndexer, VideoEmbedder, FAISSVectorStore
 from .phase12_search import BM25Retriever, DenseRetriever, HybridFusion
 from .phase3_reranking import ColBERTReranker, ITMScorer
-from .phase4_assembly import VideoAssembler, VisualScorer, TCScorer
+from .phase4_assembly import VideoAssembler
 from .phase5_c2pa import C2PATagger
 
 logger = logging.getLogger(__name__)
@@ -80,7 +79,6 @@ class VideoRAGPipeline:
         # itm_features.pt가 없으면 None → Phase 3b 건너뜀 (ColBERT만 적용)
         self.itm_scorer: Optional[ITMScorer] = None
         self.assembler = VideoAssembler(output_dir=output_dir)
-        self.tc_scorer = TCScorer()
         self.c2pa_tagger = C2PATagger()
 
         # 클립 메타데이터
@@ -377,13 +375,12 @@ class VideoRAGPipeline:
             logger.warning("assemble_curated: 큐레이션된 클립이 없습니다.")
             return VideoRAGResult(
                 video_path="", clips=[], c2pa_manifest={},
-                transitions=[], latency_ms=0, phase_latencies={}, tc_score=0.0
+                transitions=[], latency_ms=0, phase_latencies={}
             )
 
         # ── Phase 4: Video Assembly ──────────────────────────────────
         video_path = ""
         transitions = []
-        tc_result = {'tc_score': 0.0}
 
         tracker.start("phase4_assembly")
         try:
@@ -396,18 +393,6 @@ class VideoRAGPipeline:
         except Exception as e:
             logger.error(f"영상 합성 실패: {e}")
         tracker.stop("phase4_assembly")
-
-        # TC-Score
-        tracker.start("phase4_tc_score")
-        try:
-            tc_result = self.tc_scorer.compute_tc_score(
-                curated_clips[:10],
-                self.assembler.visual_scorer,
-                get_keyframe_fn=self.assembler._get_keyframe
-            )
-        except Exception as e:
-            logger.warning(f"TC-Score 측정 실패: {e}")
-        tracker.stop("phase4_tc_score")
 
         # ── Phase 5: C2PA ────────────────────────────────────────────
         tracker.start("phase5_c2pa")
@@ -424,12 +409,6 @@ class VideoRAGPipeline:
             transitions=transitions,
             latency_ms=tracker.total_ms,
             phase_latencies=tracker.all_latencies,
-            tc_score=tc_result.get('tc_score', 0.0)
-        )
-
-        # v2: 품질 요약 생성 (시연용 대시보드)
-        result.quality_summary = self._build_quality_summary(
-            result, tc_result, transitions
         )
 
         logger.info(
@@ -464,7 +443,6 @@ class VideoRAGPipeline:
         # ─────────────────────────────────────────
         video_path = ""
         transitions = []
-        tc_result = {'tc_score': 0.0}
 
         if assemble_video and reranked:
             tracker.start("phase4_assembly")
@@ -482,23 +460,6 @@ class VideoRAGPipeline:
                 f"[Phase 4] Assembly: {video_path} "
                 f"({tracker.all_latencies.get('phase4_assembly', 0):.1f}ms)"
             )
-
-            # TC-Score 측정
-            tracker.start("phase4_tc_score")
-            try:
-                tc_result = self.tc_scorer.compute_tc_score(
-                    reranked[:10],
-                    self.assembler.visual_scorer,
-                    get_keyframe_fn=self.assembler._get_keyframe
-                )
-                logger.info(
-                    f"[Phase 4] TC-Score: {tc_result['tc_score']:.4f} "
-                    f"({self.tc_scorer.interpret_score(tc_result['tc_score'])})"
-                )
-            except Exception as e:
-                logger.warning(f"TC-Score 측정 실패: {e}")
-                tc_result = {'tc_score': 0.0}
-            tracker.stop("phase4_tc_score")
 
         # ─────────────────────────────────────────
         # Phase 5: C2PA Tagging (~50ms)
@@ -526,12 +487,6 @@ class VideoRAGPipeline:
             transitions=transitions,
             latency_ms=tracker.total_ms,
             phase_latencies=tracker.all_latencies,
-            tc_score=tc_result.get('tc_score', 0.0)
-        )
-
-        # v2: 품질 요약 생성
-        result.quality_summary = self._build_quality_summary(
-            result, tc_result, transitions
         )
 
         logger.info(f"{'='*60}")
@@ -541,57 +496,3 @@ class VideoRAGPipeline:
         logger.info(f"{'='*60}")
 
         return result
-
-    # ──────────────────────────────────────────────────────────────────
-    # 유틸리티
-    # ──────────────────────────────────────────────────────────────────
-
-    def _build_quality_summary(
-        self, result: VideoRAGResult, tc_result: Dict, transitions: List
-    ) -> Dict:
-        """품질 요약 딕셔너리 생성 (시연용 대시보드)
-
-        Args:
-            result: VideoRAGResult
-            tc_result: TC-Score 결과 dict
-            transitions: 트랜지션 목록
-
-        Returns:
-            품질 요약 딕셔너리
-        """
-        clips = result.clips
-        tc_score = tc_result.get("tc_score", 0.0)
-
-        # TC-Score 해석
-        if tc_score >= 0.7:
-            tc_interpretation = "우수 — 시간적 일관성이 높아 자연스러운 영상 흐름"
-        elif tc_score >= 0.5:
-            tc_interpretation = "양호 — 대체로 일관되나 일부 전환에서 어색함 가능"
-        elif tc_score >= 0.3:
-            tc_interpretation = "보통 — 시각적 흐름 개선이 필요할 수 있음"
-        else:
-            tc_interpretation = "주의 — 클립 간 시간적 일관성이 낮아 검토 필요"
-
-        # 트랜지션 구성
-        transition_counts = {}
-        for t in transitions:
-            ttype = t.transition_type.value if hasattr(t.transition_type, "value") else str(t.transition_type)
-            transition_counts[ttype] = transition_counts.get(ttype, 0) + 1
-
-        # 클립별 점수
-        clip_scores = [
-            {"clip_id": c.clip_id, "score": c.score, "caption": c.caption}
-            for c in clips
-        ]
-
-        return {
-            "tc_score": tc_score,
-            "tc_interpretation": tc_interpretation,
-            "avg_search_score": (
-                sum(c.score for c in clips) / len(clips) if clips else 0
-            ),
-            "clip_count": len(clips),
-            "transition_counts": transition_counts,
-            "clip_scores": clip_scores,
-            "latency_ms": result.latency_ms,
-        }

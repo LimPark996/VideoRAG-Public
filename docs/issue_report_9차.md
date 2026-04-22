@@ -1,7 +1,7 @@
 # TokenFlow 디버깅 전체 이슈 보고서
 
 **날짜**: 2026-04-20  
-**파일**: `src/phase4_assembly/tokenflow_wrapper.py`  
+**파일**: `src/phase4_assembly/tokenflow_wrapper.py`, `src/phase4_assembly/inverse_prompt_engine.py`, `notebooks/02_demo.ipynb`  
 **상태**: 수정 완료 (일부 항목 검증 진행 중)
 
 ---
@@ -23,6 +23,8 @@
 | 11 | n_frames가 batch_size 배수 아닐 때 프레임 손실 | TokenFlow 내부에서 `n_frames % batch_size != 0` 이면 자동 잘림 | batch_size를 n_frames 약수 중 최댓값으로 동적 조정 | ✅ 완료 |
 | 12 | `img_ode` 폴더 탐색 깊이 부족 | run_tokenflow_pnp가 output 경로에 여러 단계 하위 폴더를 자동 생성 | `**` 재귀 탐색으로 `img_ode` 폴더 위치 동적 탐색 | ✅ 완료 |
 | 13 | RIFE 가중치 다운로드 실패 | 존재하지 않는 GitHub Releases URL 사용 | HuggingFace `jbilcke-hf/varnish` 미러 URL로 변경 | ✅ 완료 |
+| 14 | 3fps 영상에서 TokenFlow 품질 저하 | TokenFlow는 프레임 수와 fps에 민감해서 3fps 영상에서 결과가 나쁨 | fps ≤ 3.0이면 SD img2img로 자동 분기 | ✅ 완료 |
+| 15 | img2img 모드에서 프롬프트 작성법 불명확 | SD는 지시어("Transform...") 를 이해 못함. 스타일 키워드 위주로 짧게 써야 함 | Gradio에 스타일 키워드 체크박스 UI 추가 | ✅ 완료 |
 
 ---
 
@@ -345,52 +347,148 @@ weight_url = "https://huggingface.co/jbilcke-hf/varnish/resolve/main/rife/flowne
 
 ---
 
+## 이슈 14: 3fps 영상에서 TokenFlow 품질 저하
+
+### 증상
+- 스타일 변환이 거의 일어나지 않음
+- 결과 영상이 원본과 거의 동일하게 나옴
+
+### 원인
+TokenFlow는 DDIM inversion 기반으로 동작하는데, 3fps 영상은 프레임 수가 너무 적어서 inversion 품질 자체가 낮다. inversion 품질이 낮으면 원본 구조도 제대로 못 잡고 스타일 변환도 약하게 나온다.
+
+MSR-VTT 데이터셋 자체가 용량 절감을 위해 3fps로 인코딩된 영상이 많아서 근본적인 한계가 있다.
+
+RIFE 보간으로 프레임 수를 늘려도 보간된 프레임은 원본 정보가 아니라서 inversion 품질 개선에 한계가 있다.
+
+반면 SD img2img는 각 프레임을 독립적으로 변환하므로 fps와 무관하게 스타일 변환이 적용된다. 테스트 결과 `strength=0.3` 에서 원본 구도를 유지하면서 스타일 변환이 확인됐다.
+
+### 수정
+`tokenflow_wrapper.py` 에 fps 기반 자동 분기 추가.
+
+```python
+FPS_THRESHOLD = 3.0  # 이 값 이하면 img2img, 초과하면 TokenFlow
+
+def edit(self, video_path, prompt, output_path, source_prompt=""):
+    # fps 확인
+    cap = cv2.VideoCapture(video_path)
+    orig_fps = cap.get(cv2.CAP_PROP_FPS) or 30.0
+    cap.release()
+
+    if orig_fps <= FPS_THRESHOLD:
+        return self._edit_img2img(video_path, prompt, output_path)
+    else:
+        # 기존 TokenFlow 실행
+        ...
+```
+
+`_edit_img2img()` 설정:
+```python
+IMG2IMG_STRENGTH       = 0.3   # 원본 70% 유지
+IMG2IMG_GUIDANCE_SCALE = 12.5  # 프롬프트 충실도
+IMG2IMG_SEED           = 42    # 시간적 일관성을 위한 고정 seed
+```
+
+img2img 백엔드 선택 시 프롬프트 형식 주의:
+- **잘못된 형식**: `"Transform the visual style while preserving..."` (SD가 지시어 이해 못함)
+- **올바른 형식**: `"a dog running in a park, oil painting, warm tones"` (명사/형용사 키워드 위주)
+
+---
+
+## 이슈 15: img2img 모드에서 프롬프트 작성법 불명확으로 결과 품질 저하
+
+### 증상
+- img2img 모드에서도 스타일 변환이 안 되거나 구도가 무너짐
+- 기존 자동 생성 프롬프트(`"Transform the visual style while preserving..."`)를 그대로 사용하면 SD가 인식하지 못함
+
+### 원인
+SD img2img는 Stable Diffusion 기반이라 이미지를 설명하는 **명사/형용사 키워드** 형식의 프롬프트가 필요하다. 기존 자동 생성 프롬프트는 TokenFlow/Runway용으로 설계된 자연어 지시문이라서 SD와 호환되지 않는다.
+
+또한 `strength` 값이 너무 높으면 원본 구도가 무너진다.
+- `strength=0.5`: 원본의 50%를 버려서 구도 붕괴
+- `strength=0.3`: 원본의 70% 유지, 스타일 변환 적용 → 최적값으로 확인
+
+### 수정
+`02_demo.ipynb` Tab 2 변환 패널에 fps 조건부 UI 분기 추가.
+
+**fps > 3.0 (TokenFlow 모드)**: 기존 프롬프트 입력창 표시
+
+**fps ≤ 3.0 (img2img 모드)**: 프롬프트 입력창 숨기고 스타일 키워드 체크박스 표시
+
+```
+[분위기]          [색감]              [스타일]
+□ golden hour    □ warm tones        □ oil painting
+□ cinematic      □ vivid colors      □ watercolor
+□ dark moody     □ muted tones       □ anime
+□ bright         □ pastel            □ vintage film
+□ dramatic       □ cool tones        □ cinematic 4K
+```
+
+선택한 키워드들이 자동으로 조합되어 프롬프트 생성:
+```python
+subject = clip["caption"][:60]   # 영상 내용
+keywords = ", ".join(선택된_키워드들)
+prompt = f"{subject}, {keywords}"
+# 예: "a dog running in a park, oil painting, warm tones, golden hour"
+```
+
+**Runway 모드**: 기존 자동 생성 프롬프트 그대로 사용 (Runway는 자연어 지시문 이해 가능)
+
+---
+
 ## TokenFlow end-to-end 정상 흐름 (전체 수정 후)
 
 ```
 Gradio에서 변환 버튼 클릭
   ↓
-_ensure_ready()
-  ├── TokenFlow 설치 확인
-  └── revision="fp16" 패치 적용
-  ↓
-_extract_frames()
-  ├── 원본 fps 확인 (cv2)
-  ├── orig_fps < EXTRACT_FPS 이면 RIFE 보간 시도
-  │     3fps → 24fps (8배 보간)
-  │     실패 시 원본 fps로 폴백
-  ├── effective_fps = min(EXTRACT_FPS, orig_fps)
-  ├── step = round(orig_fps / effective_fps)
-  └── 매 step번째 프레임 → PNG 저장
-  ↓
-_run_tokenflow()
-  ├── uid 생성, rel_data/rel_output 경로 설정
-  ├── PNG → JPG 변환 후 /content/TokenFlow/data/tf_{uid}/ 에 복사
-  ├── n_frames의 약수 중 BATCH_SIZE 이하 최댓값으로 effective_batch_size 계산
+fps 확인 (cv2)
+  ├── fps <= 3.0 → SD img2img 분기
+  │     스타일 키워드 체크박스 선택값으로 프롬프트 조합
+  │     StableDiffusionImg2ImgPipeline (strength=0.3, guidance_scale=12.5, seed=42)
+  │     각 프레임 독립 변환 → ffmpeg로 mp4 재조립
+  │     → 최종 영상 반환
   │
-  ├── [Step 1] preprocess.py 실행
-  │     --data_path data/tf_{uid}  (상대경로)
-  │     --save_dir  data/tf_{uid}
-  │     --steps 30 --save_steps 30  (동일한 timestep 목록 보장)
-  │     --n_frames {n_frames}
-  │     --batch_size {effective_batch_size}
-  │     → latents 저장: data/tf_{uid}/sd_1.5/tf_{uid}/steps_30/nframes_{N}/latents/
-  │
-  ├── [Step 2] run_tokenflow_pnp.py 실행
-  │     n_timesteps=30, n_inversion_steps=30  (preprocess와 동일)
-  │     batch_size={effective_batch_size}
-  │     → 편집 프레임 저장: tf_{uid}_out_.../_pnp_SD_1.5/.../30/img_ode/
-  │
-  ├── img_ode/ 폴더를 ** 재귀 탐색으로 찾음
-  ├── 프레임을 edited_dir 로 복사
-  ├── 출력 폴더 삭제 (수집 완료 후)
-  └── finally: data/tf_{uid}/ + yaml config 삭제
-  ↓
-_reconstruct_video()
-  ├── ffmpeg로 mp4 재조립 (fps=4)
-  └── 실패 시 OpenCV 폴백
-  ↓
-최종 영상 경로 반환
+  └── fps > 3.0 → TokenFlow 분기
+        ↓
+        _ensure_ready()
+          ├── TokenFlow 설치 확인
+          └── revision="fp16" 패치 적용
+        ↓
+        _extract_frames()
+          ├── orig_fps < EXTRACT_FPS 이면 RIFE 보간 시도
+          │     3fps → 24fps (8배 보간, Practical-RIFE)
+          │     실패 시 원본 fps로 폴백
+          ├── effective_fps = min(EXTRACT_FPS, orig_fps)
+          ├── step = round(orig_fps / effective_fps)
+          └── 매 step번째 프레임 → PNG 저장
+        ↓
+        _run_tokenflow()
+          ├── uid 생성, rel_data/rel_output 경로 설정
+          ├── PNG → JPG 변환 후 /content/TokenFlow/data/tf_{uid}/ 에 복사
+          ├── n_frames의 약수 중 BATCH_SIZE 이하 최댓값으로 effective_batch_size 계산
+          │
+          ├── [Step 1] preprocess.py 실행
+          │     --data_path data/tf_{uid}  (상대경로)
+          │     --save_dir  data/tf_{uid}
+          │     --steps 30 --save_steps 30  (동일한 timestep 목록 보장)
+          │     --n_frames {n_frames}
+          │     --batch_size {effective_batch_size}
+          │     → latents 저장: data/tf_{uid}/sd_1.5/tf_{uid}/steps_30/nframes_{N}/latents/
+          │
+          ├── [Step 2] run_tokenflow_pnp.py 실행
+          │     n_timesteps=30, n_inversion_steps=30
+          │     batch_size={effective_batch_size}
+          │     → 편집 프레임 저장: tf_{uid}_out_.../_pnp_SD_1.5/.../30/img_ode/
+          │
+          ├── img_ode/ 폴더를 ** 재귀 탐색으로 찾음
+          ├── 프레임을 edited_dir 로 복사
+          ├── 출력 폴더 삭제 (수집 완료 후)
+          └── finally: data/tf_{uid}/ + yaml config 삭제
+        ↓
+        _reconstruct_video()
+          ├── ffmpeg로 mp4 재조립 (fps=4)
+          └── 실패 시 OpenCV 폴백
+        ↓
+        최종 영상 경로 반환
 ```
 
 ---
@@ -399,7 +497,9 @@ _reconstruct_video()
 
 | 파일 | 역할 |
 |---|---|
-| `src/phase4_assembly/tokenflow_wrapper.py` | 수정 대상 전체 |
+| `src/phase4_assembly/tokenflow_wrapper.py` | fps 분기, TokenFlow 실행, img2img 실행 |
+| `src/phase4_assembly/inverse_prompt_engine.py` | `_apply_tokenflow()` — fps 로그 및 백엔드 선택 표시 |
+| `notebooks/02_demo.ipynb` | Gradio UI — fps 조건부 패널 분기, 스타일 키워드 체크박스 |
 | `/content/TokenFlow/preprocess.py` | DDIM inversion, latent 저장 |
 | `/content/TokenFlow/run_tokenflow_pnp.py` | PnP 편집, latent 요청, img_ode 저장 |
 | `/content/TokenFlow/tokenflow_utils.py` | `load_source_latents_t()` — latent 로드 |

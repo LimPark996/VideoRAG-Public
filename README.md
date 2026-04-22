@@ -6,29 +6,46 @@
 
 Google Colab T4에서 1인 개발한 프로토타입이다.
 
-## 02_demo.ipynb — PD 워크스테이션
+## 웹 데모 (GitHub Pages)
 
-이 프로젝트의 핵심 산출물. 2-탭 Gradio 인터페이스다.
+**주소:** https://limpark996.github.io/VideoRAG-Public/
+
+전체 검색→합성 파이프라인을 시연하는 React 웹앱. 10개 사전 구성 방송 시나리오, MSR-VTT 163개 클립에서 Top-5 ITM 재순위 결과를 제공한다.
+
+**PD가 하는 일:**
+1. 시나리오 선택 (방송 주제 10개)
+2. 장면 탭 선택 → Top-5 ITM 재순위 클립 확인
+3. 클립 클릭 → In/Out 구간 설정
+4. **USE AS-IS** — 클립 그대로 사용 / **TRANSFORM** — FFmpeg 색감 프리셋 10종 중 하나 적용 (warm / cool / golden hour / noir / cinematic / documentary / dramatic / night / tense / vibrant)
+5. 각 장면마다 반복 (완료된 장면은 초록 배지)
+6. 합성 패널에서 **드래그로 장면 순서 변경**
+7. **합성** → DINOv2 전환 스코어링 (CUT/CROSSFADE/MORPH) + DreamColour 3D LUT 색보정 → 최종 영상
+
+**백엔드:** Modal 서버리스 (DINOv2·DreamColour용 T4 GPU, 변환은 FFmpeg)
+
+## 02_demo.ipynb — PD 워크스테이션 (전체 시스템)
+
+전체 기능을 갖춘 Gradio 프로토타입. Google Colab T4에서 실행하는 2-탭 인터페이스다.
 
 ### Tab 1: Scene Graph 워크플로
 
-PD가 대본(JSON)을 넣으면 GPT-4o-mini가 장면별 Scene Graph를 생성한다. 각 장면의 description(영어, 검색용)과 attributes(시간대, 계절, 분위기, 장소)가 추출되고, 시스템이 아카이브를 검색한 뒤 **장면마다 2경로 분기 판정을 자동으로 제안**한다. PD는 제안된 분기를 확인하고 직접 오버라이드할 수 있다:
+PD가 대본(JSON)을 넣으면 GPT-4o-mini가 장면별 Scene Graph를 생성한다. 각 장면의 description(영어, 검색용)과 attributes(시간대, 계절, 분위기, 장소)가 추출되고, 시스템이 아카이브를 검색한 뒤 **장면마다 2경로 분기 판정을 자동으로 제안**한다.
 
 | 분기 | 자동 판정 기준 | 처리 |
 |---|---|---|
 | **USE_AS_IS** | 검색 점수 ≥ 임계값 + 속성 일치도 ≥ 임계값 | 그대로 사용 |
-| **TRANSFORM** | 속성 불일치 또는 검색 점수 낮음 | 역프롬프트 생성 → TokenFlow (속성 변환) 또는 Runway gen4_aleph v2v (창의적 변환) |
+| **TRANSFORM** | 속성 불일치 또는 검색 점수 낮음 | 역프롬프트 생성 → InversePromptEngine → AI 스타일 변환 |
 
 **PD가 매 장면에서 하는 일:**
 1. 상위 5개 후보 클립을 영상으로 미리보기
 2. 후보 클립 한개 선정
-3. TRANSFORM이면 — 생성된 역프롬프트를 확인/직접 수정, 원하는 구간을 슬라이더로 크롭, 백엔드 선택(tokenflow / runway / original)
+3. TRANSFORM이면 — 생성된 역프롬프트를 확인/직접 수정, 원하는 구간을 슬라이더로 크롭
 4. 승인 / 재시도 / 건너뛰기 / 직접 파일 업로드 중 선택
 5. 모든 장면 완료 후 장면 순서 재배치
-6. 최종 합성 → DINOv2 전환 효과 + 색보정 + C2PA 서명된 영상 출력
+6. 최종 합성 → DINOv2 전환 효과 + DreamColour 색보정 + C2PA 서명된 영상 출력
 
 **역프롬프트(Inverse Prompt)란?**
-"저녁→밤으로 바꿔" 같은 추상적 지시가 아니라, 장면 의도(Scene Intent)를 포함한 구체적 시네마틱 프롬프트를 자동 생성하는 것이다. 예를 들어 "네온사인이 빛나는 도시 밤" 장면인데 검색된 클립이 저녁이면, 단순히 "어둡게 해라"가 아니라 "A sprawling cityscape at night, neon signs blazing in electric blue and magenta, deep indigo sky, volumetric haze catching the neon glow" 같은 프롬프트를 Rule Based로 생성하고, 이걸 TokenFlow나 Runway에 넘긴다.
+"저녁→밤으로 바꿔" 같은 추상적 지시가 아니라, 장면 의도(Scene Intent)를 포함한 구체적 시네마틱 프롬프트를 자동 생성하는 것이다. "네온사인이 빛나는 도시 밤" 장면인데 검색된 클립이 저녁이면 "A sprawling cityscape at night, neon signs blazing in electric blue and magenta, deep indigo sky, volumetric haze catching the neon glow" 같은 프롬프트를 Rule Based로 생성한다.
 
 ### Tab 2: PD 큐레이션(TBD)
 
@@ -36,7 +53,7 @@ Scene Graph 없이 텍스트 쿼리로 바로 검색 → PD가 클립을 직접 
 
 ### 공통 기능
 
-실시간 로그 패널, 단계별 레이턴시 차트, TC-Score(시간 일관성) 표시, C2PA 출처 서명, Runway 생성 영상 Drive 자동 백업.
+실시간 로그 패널, 단계별 레이턴시 차트, TC-Score(시간 일관성) 표시, C2PA 출처 서명.
 
 ## 03_evaluation.ipynb — MSR-VTT 1k-A 벤치마크
 
@@ -85,48 +102,55 @@ Scene Graph 없이 텍스트 쿼리로 바로 검색 → PD가 클립을 직접 
     │
     ├── USE_AS_IS ──→ 클립 그대로 사용
     │
-    └── TRANSFORM ──→ [InversePromptEngine]
-                        역프롬프트 생성 (Rule Based)
-                          ├──→ TokenFlow (로컬, SD + DDIM inversion, subprocess)
-                          └──→ Runway gen4_aleph (API 기반 video-to-video)
+    └── TRANSFORM ──→ FFmpeg 색감 필터 ★데모         [InversePromptEngine → AI변환: 전체시스템]
+                        (warm/cool/noir/cinematic 등 10종 프리셋)
     │
     ▼
-  ★ PD 리뷰 (승인/수정/재시도/건너뛰기/업로드)
+  ★ PD 리뷰 + 장면 순서 드래그 리오더
     │
     ▼
-[VideoAssembler]
+[VideoAssembler] ★데모
+  DreamColour 3D LUT 색보정 (첫 클립 기준 LAB 매핑)
   DINOv2 전환 스코어링 (CUT / CROSSFADE / MORPH)
-  DreamColour 3D LUT 색보정
   FFmpeg 렌더링
     │
-    ▼
-[C2PA Tagger] ── ES256 출처 서명
-    │
-    ▼
-최종 영상 + TC-Score + C2PA 메타데이터
+    ▼                   [C2PA ES256 서명: 전체시스템]
+최종 영상
 ```
 
 ## 기술 스택
 
-| 역할 | 기술 | 출처 |
-|---|---|---|
-| 영상 임베딩 | InternVideo2-1B (512차원, 4프레임) | Shanghai AI Lab, CVPR 2024 |
-| 희소 검색 | BM25 + spaCy 레마타이저 (k1=1.5, b=0.75) | rank_bm25 |
-| 밀집 인덱스 | FAISS IVFFlat (nlist=100, nprobe=10) | Meta AI Research |
-| 검색 융합 | WRRF (w_visual=0.6, w_text=0.4, k=60) | Cormack 2009 기반 자체 설계 |
-| 리랭킹 | ColBERT v2 MaxSim (PLAID centroid pruning) | Stanford, SIGIR/NAACL 2022 |
-| 최종 재순위 | ITM (InternVideo2 cross-attention, full 1k 적용) | 자체 통합 |
-| 텍스트 임베딩 | InternVideo2 encode_text + mean pooling (ITC collapse 우회) | 자체 수정 |
-| 대본 파싱 | GPT-4o-mini → Scene Graph JSON | OpenAI |
-| 역프롬프트 | InversePromptEngine (속성→시네마틱 프롬프트) | 자체 설계 |
-| 영상 변환 (로컬) | TokenFlow (SD 1.5 + DDIM inversion, subprocess, keyframe 8fps/10f) | Geyer et al. 2023 |
-| 영상 변환/생성 (API) | Runway Gen-4 Turbo (video-to-video / text-to-video) | Runway API |
-| 전환 효과 | DINOv2 시각 유사도 (CUT/CROSSFADE/MORPH) | Meta AI Research |
-| 색보정 | DreamColour 3D LUT | CHAITron/DreamColour |
-| 시간 일관성 | TC-Score (Optical Flow 기반) | 자체 설계 |
-| 샷 탐지 | TransNetV2 + Agglomerative Clustering (데모에서는 비활성, 클립당 단일 프레임 사용) | Souček & Lokoč 2020 |
-| 출처 추적 | C2PA + ES256 서명 | C2PA specification |
-| 평가 인덱스 | FAISS IndexFlatIP (exact, Tier 1 전용) | 자체 구현 |
+> ✓ 데모 활성 · ✗ 데모 비활성 (전체 시스템에는 포함)
+
+| 역할 | 기술 | 출처 | 데모 |
+|---|---|---|:---:|
+| 영상 임베딩 | InternVideo2-1B (512차원, 4프레임) | Shanghai AI Lab, CVPR 2024 | ✓ |
+| 희소 검색 | BM25 + spaCy 레마타이저 (k1=1.5, b=0.75) | rank_bm25 | ✓ |
+| 밀집 인덱스 | FAISS IVFFlat (nlist=100, nprobe=10) | Meta AI Research | ✓ |
+| 검색 융합 | WRRF (w_visual=0.6, w_text=0.4, k=60) | Cormack 2009 기반 자체 설계 | ✓ |
+| 리랭킹 | ColBERT v2 MaxSim (PLAID centroid pruning) | Stanford, SIGIR/NAACL 2022 | ✓ |
+| 최종 재순위 | ITM (InternVideo2 cross-attention, full 1k 적용) | 자체 통합 | ✓ |
+| 텍스트 임베딩 | InternVideo2 encode_text + mean pooling (ITC collapse 우회) | 자체 수정 | ✓ |
+| 영상 변환 | FFmpeg 색감 필터 (warm / cool / golden hour / noir / cinematic 등 10종, Modal 서버리스) | FFmpeg | ✓ |
+| 전환 효과 | DINOv2 시각 유사도 (CUT/CROSSFADE/MORPH) | Meta AI Research | ✓ |
+| 대본 파싱 | GPT-4o-mini → Scene Graph JSON (데모: pre-computed JSON 사용) | OpenAI | ✗ |
+| 역프롬프트 | InversePromptEngine (속성→시네마틱 프롬프트) | 자체 설계 | ✗ |
+| 색보정 | DreamColour 3D LUT (assemble 시 첫 클립 기준 LAB 색공간 매핑) | CHAITron/DreamColour | ✓ |
+| 시간 일관성 | TC-Score (Optical Flow 기반) — FFmpeg 필터는 결정론적, shot 단위 클립은 원본이 보장 | 자체 설계 | ✗ |
+| 샷 탐지 | TransNetV2 + Agglomerative Clustering — 클립당 단일 프레임 사용 | Souček & Lokoč 2020 | ✗ |
+| 출처 추적 | C2PA + ES256 서명 | C2PA specification | ✗ |
+| 평가 인덱스 | FAISS IndexFlatIP (exact, Tier 1 전용) | 자체 구현 | ✗ |
+
+## 웹 데모 배포
+
+```bash
+# Modal 백엔드 배포 (Transform + Assemble API)
+modal deploy scripts/modal_transform.py
+
+# 프론트엔드 빌드 + GitHub Pages 배포
+cd videorag-demo
+npm run deploy
+```
 
 ## 빠른 시작 (Colab)
 
@@ -152,7 +176,6 @@ notebooks/03_evaluation.ipynb
 - Google Colab (T4 GPU)
 - HuggingFace 토큰 (`HF_TOKEN`) — InternVideo2 가중치
 - OpenAI API 키 — GPT-4o-mini (캡션, Scene Graph, 역프롬프트)
-- (선택) Runway API 키 — TRANSFORM 경로의 Runway v2v (없으면 TokenFlow로 로컬 변환)
 - (선택) Papago API — 한국어 쿼리 번역
 - MSR-VTT 영상 — Google Drive에 MSR-VTT.ZIP (`data/msrvtt/README.md` 참고)
 
@@ -164,10 +187,10 @@ videorag-public/
     pipeline.py                  # 메인 오케스트레이터
     data_models.py               # 공용 데이터 모델
     input/
-      query_preprocessor.py      # 한국어→영어 번역 (Papago)
-      script_parser.py           # 대본 → Scene Graph JSON (GPT-4o-mini)
+      query_preprocessor.py      # 한국어→영어 번역 (Papago)          [데모 비활성]
+      script_parser.py           # 대본 → Scene Graph JSON (GPT-4o-mini) [데모 비활성 — pre-computed]
     phase0_indexing/
-      shot_detector.py           # TransNetV2 + Agglomerative Clustering
+      shot_detector.py           # TransNetV2 + Agglomerative Clustering  [데모 비활성 — 클립당 단일 프레임]
       embedder.py                # InternVideo2-1B 임베딩 (ITC: mean pooling, ITM: full token)
       vector_store.py            # FAISS IVFFlat 인덱스
       indexer.py                 # Phase 0 오케스트레이터
@@ -180,16 +203,16 @@ videorag-public/
       itm_scorer.py              # ITM 최종 재순위 (itm_head 수동 탑재)
     phase4_assembly/
       storyboard_mapper.py       # Scene Graph → 2경로 분기 판정
-      inverse_prompt_engine.py   # 역프롬프트 생성 + TokenFlow/Runway 호출
-      tokenflow_wrapper.py       # TokenFlow video-to-video 래퍼 (subprocess)
+      inverse_prompt_engine.py   # 역프롬프트 생성                     [데모 비활성]
+      tokenflow_wrapper.py       # TokenFlow video-to-video 래퍼       [데모 비활성]
       assembler.py               # 영상 어셈블리
       visual_scorer.py           # DINOv2 시각 유사도
       transition_selector.py     # CUT/CROSSFADE/MORPH 자동 선택
-      colour_normalizer.py       # DreamColour 3D LUT
+      colour_normalizer.py       # DreamColour 3D LUT                  [데모 비활성]
       morph_transition.py        # Optical Flow 변형 전환
-      tc_scorer.py               # TC-Score
+      tc_scorer.py               # TC-Score                            [데모 비활성 — FFmpeg 필터/shot 단위로 불필요]
     phase5_c2pa/
-      c2pa_tagger.py             # C2PA ES256 서명
+      c2pa_tagger.py             # C2PA ES256 서명                     [데모 비활성]
     evaluation/
       faiss_flat_eval.py         # Exact-search 평가 인덱스
   notebooks/
@@ -198,6 +221,8 @@ videorag-public/
     01b_caption_remaining.ipynb  # 나머지 6,010개 캡션 생성
     02_demo.ipynb                # ★ PD 워크스테이션
     03_evaluation.ipynb          # ★ MSR-VTT 1k-A 벤치마크
+  scripts/
+    modal_transform.py           # ★ 데모 Transform/Assemble API (Modal 배포용)
   docs/
     인덱싱_검색_과정_정리.md      # 인덱싱·검색 전체 흐름 (단계별 입출력 명세)
     기술_출처_정리.md             # 모듈별 논문·라이선스 출처
@@ -211,9 +236,9 @@ videorag-public/
 
 **왜 2경로 분기?** 클립이 딱 맞으면 그대로 쓰고(USE_AS_IS), 속성이 다르거나 점수가 낮으면 AI로 변환한다(TRANSFORM). 완전히 새로운 영상을 생성하는 것은 PD가 외부 툴로 직접 하는 것이 더 효율적이다. PD가 매 판정을 검토하고 오버라이드할 수 있어서, AI의 자동화와 사람의 편집 판단이 공존한다.
 
-**왜 TokenFlow + Runway 이중 변환 백엔드?** Runway는 API 비용이 발생하고 인터넷이 필요하다. TokenFlow는 Stable Diffusion 1.5 기반으로 Colab 로컬에서 실행되어 비용 없이 변환 가능하다. keyframe subsampling(8fps 추출, 10프레임마다 keyframe 1개)으로 5초 클립 기준 T4에서 약 30~60초에 처리한다. TokenFlow는 Python import 방식이 아닌 subprocess(preprocess.py → run_tokenflow_pnp.py CLI) 방식으로 실행된다. 두 백엔드를 같은 인터페이스에서 선택할 수 있어 비용·품질 트레이드오프를 PD가 직접 결정한다.
+**왜 데모에서 FFmpeg 필터를 쓰나?** SD img2img나 TokenFlow 같은 생성 모델은 원본 영상의 내용을 예측 불가하게 변형하고 응답이 수 분씩 걸려 데모에 부적합하다. FFmpeg 필터(colorbalance, eq, hue, vignette)는 원본 화질과 내용을 유지하면서 색감·분위기만 즉각 바꾼다. warm / cool / golden hour / noir / cinematic / documentary / dramatic / night / tense / vibrant 10종 프리셋을 제공하고, 단일 선택으로 복합 적용으로 인한 의도치 않은 결과를 방지한다.
 
-**왜 역프롬프트?** Runway에 "저녁을 밤으로 바꿔"라고 넣으면 그냥 어두워지기만 한다. InversePromptEngine이 장면 의도를 포함한 시네마틱 프롬프트를 생성해서 변환 품질을 높인다.
+**왜 역프롬프트?** (전체 시스템 기준, 데모 비활성) 생성 모델에 "저녁을 밤으로 바꿔"라고 넣으면 그냥 어두워지기만 한다. InversePromptEngine이 장면 의도를 포함한 시네마틱 프롬프트를 생성해서 변환 품질을 높인다.
 
 **왜 하이브리드 검색?** BM25는 고유명사·숫자 매칭, Dense(InternVideo2)는 의미 유사도. WRRF로 두 장점을 결합하고, ColBERT(PLAID centroid pruning으로 10~50x 가속)로 상위 후보를 정밀 리랭킹한 뒤 ITM cross-attention으로 최종 재순위한다. ITC 텍스트 임베딩의 cosine collapse 문제로 dense 채널은 CLS 대신 mean pooling을 사용한다.
 
@@ -235,15 +260,32 @@ videorag-public/
 
 # VideoRAG — AI-Powered Video Retrieval · Transform · Synthesis PD Workstation
 
-A system where a broadcast PD inputs a screenplay or natural-language query, and the system searches the video archive for matching scenes, transforms clips whose attributes don't match via AI (TokenFlow for attribute changes, Runway gen4_aleph v2v for creative transforms), and assembles the final edited video — all in one interface.
+A system where a broadcast PD inputs a screenplay or natural-language query, and the system searches the video archive for matching scenes, transforms clips whose attributes don't match via AI, and assembles the final edited video — all in one interface.
 
 The core idea: **the PD controls the boundary between retrieval and generation**. Existing systems only search (Google), only generate (Runway/Sora), or only track provenance (Adobe). VideoRAG integrates all three into a single workflow. For each scene, the PD decides whether to use an archive clip as-is, transform it with AI, or generate from scratch — reviewing prompts, cropping segments, and approving results at every step.
 
 Built as a solo prototype on Google Colab (T4 GPU).
 
-## 02_demo.ipynb — PD Workstation
+## Web Demo (GitHub Pages)
 
-The core deliverable. A 2-tab Gradio interface.
+**Live:** https://limpark996.github.io/VideoRAG-Public/
+
+A React web app demonstrating the full retrieval-to-assembly pipeline. 10 pre-computed broadcast scenarios, each with Top-5 ITM-reranked clips from 163 MSR-VTT clips.
+
+**What the PD does:**
+1. Pick a scenario (10 broadcast subjects)
+2. Select a scene tab — Top-5 ITM-reranked clips appear
+3. Click a clip to open the player; trim In/Out points
+4. **USE AS-IS** — use the clip directly; **TRANSFORM** — apply one of 10 FFmpeg color presets (warm / cool / golden hour / noir / cinematic / documentary / dramatic / night / tense / vibrant)
+5. Repeat for each scene (badge turns green when decided)
+6. **Drag to reorder** scenes in the assemble panel
+7. **Assemble** — DINOv2 transition scoring (CUT/CROSSFADE/MORPH) + DreamColour 3D LUT color normalization → final video
+
+**Backend:** Modal serverless (T4 GPU for DINOv2 + DreamColour, FFmpeg for transform)
+
+## 02_demo.ipynb — PD Workstation (Full System)
+
+The full Gradio prototype. A 2-tab interface running on Google Colab T4.
 
 ### Tab 1: Scene Graph Workflow
 
@@ -252,17 +294,17 @@ The PD inputs a screenplay (JSON). GPT-4o-mini generates a per-scene Scene Graph
 | Path | Condition | Action |
 |---|---|---|
 | **USE_AS_IS** | Archive clip matches required attributes | Use directly |
-| **TRANSFORM** | Attribute mismatch or low search score | Generate inverse prompt → TokenFlow (attribute changes) or Runway gen4_aleph v2v (creative transform) |
+| **TRANSFORM** | Attribute mismatch or low search score | Generate inverse prompt → InversePromptEngine → AI stylization |
 
 **What the PD does per scene:**
 1. Preview top 5 candidate clips as video
 2. Select one clip
-3. For TRANSFORM — review/edit the inverse prompt, crop the desired segment with sliders, select backend (tokenflow / runway / original)
+3. For TRANSFORM — review/edit the inverse prompt, crop the desired segment with sliders
 4. Accept / Retry / Skip / Upload own file
 5. After all scenes — reorder scenes
-6. Final assembly → DINOv2 transitions + color normalization + C2PA-signed output
+6. Final assembly → DINOv2 transitions + DreamColour color normalization + C2PA-signed output
 
-**Inverse Prompt:** Not "make it darker" but a concrete cinematic prompt that includes scene intent. For a "neon-lit city night" scene where the retrieved clip is evening, InversePromptEngine generates "A sprawling cityscape at night, neon signs blazing in electric blue and magenta, deep indigo sky, volumetric haze catching the neon glow" via rule-based generation — then sends it to TokenFlow or Runway.
+**Inverse Prompt:** Not "make it darker" but a concrete cinematic prompt that includes scene intent. For a "neon-lit city night" scene where the retrieved clip is evening, InversePromptEngine generates "A sprawling cityscape at night, neon signs blazing in electric blue and magenta, deep indigo sky, volumetric haze catching the neon glow" via rule-based generation.
 
 ### Tab 2: PD Curation (TBD)
 
@@ -270,7 +312,7 @@ Text query → search → PD manually selects/excludes/reorders clips → assemb
 
 ### Shared Features
 
-Real-time log panel, per-phase latency chart, TC-Score (temporal consistency), C2PA provenance signing, automatic Drive backup of Runway-generated videos.
+Real-time log panel, per-phase latency chart, TC-Score (temporal consistency), C2PA provenance signing.
 
 ## 03_evaluation.ipynb — MSR-VTT 1k-A Benchmark
 
@@ -313,48 +355,55 @@ Script/Query
     │
     ├── USE_AS_IS ──→ Use clip directly
     │
-    └── TRANSFORM ──→ [InversePromptEngine]
-                        Cinematic prompt (Rule Based)
-                          ├──→ TokenFlow  (local, SD 1.5 + DDIM inversion, subprocess)
-                          └──→ Runway Gen-4 Turbo (API video-to-video)
+    └── TRANSFORM ──→ FFmpeg color grading ★demo      [InversePromptEngine → AI transform: full system]
+                        (warm/cool/noir/cinematic, 10 presets)
     │
     ▼
-  ★ PD Review (accept/edit/retry/skip/upload)
+  ★ PD Review + drag-to-reorder scenes
     │
     ▼
-[VideoAssembler]
+[VideoAssembler] ★demo
+  DreamColour 3D LUT color normalization (LAB-space mapping from first clip)
   DINOv2 transition scoring (CUT/CROSSFADE/MORPH)
-  DreamColour 3D LUT color normalization
   FFmpeg rendering
     │
-    ▼
-[C2PA Tagger] ── ES256 provenance signing
-    │
-    ▼
-Final Video + TC-Score + C2PA Metadata
+    ▼                   [C2PA ES256 signing: full system]
+Final Video
 ```
 
 ## Tech Stack
 
-| Role | Technology | Source |
-|---|---|---|
-| Video Embedding | InternVideo2-1B (512-dim, 4 frames) | Shanghai AI Lab, CVPR 2024 |
-| Sparse Retrieval | BM25 + spaCy lemmatizer (k1=1.5, b=0.75) | rank_bm25 |
-| Dense Index | FAISS IVFFlat (nlist=100, nprobe=10) | Meta AI Research |
-| Retrieval Fusion | WRRF (w_visual=0.6, w_text=0.4, k=60) | Custom (Cormack 2009) |
-| Reranking | ColBERT v2 MaxSim + PLAID centroid pruning | Stanford, SIGIR/NAACL 2022 |
-| Final Reranking | ITM (InternVideo2 cross-attention, full 1k) | Custom integration |
-| Text Embedding | InternVideo2 encode_text + mean pooling (ITC collapse workaround) | Custom |
-| Script Parsing | GPT-4o-mini → Scene Graph JSON | OpenAI |
-| Inverse Prompt | InversePromptEngine (attribute→cinematic prompt) | Custom |
-| Video Transform (local) | TokenFlow (SD 1.5 + DDIM inversion, subprocess, 8fps/keyframe-10) | Geyer et al. 2023 |
-| Video Transform/Gen (API) | Runway Gen-4 Turbo (video-to-video / text-to-video) | Runway API |
-| Transition Effects | DINOv2 visual similarity (CUT/CROSSFADE/MORPH) | Meta AI Research |
-| Color Normalization | DreamColour 3D LUT | CHAITron/DreamColour |
-| Temporal Consistency | TC-Score (Optical Flow) | Custom |
-| Shot Detection | TransNetV2 + Agglomerative Clustering (disabled in demo) | Souček & Lokoč 2020 |
-| Provenance | C2PA + ES256 signing | C2PA specification |
-| Eval Index | FAISS IndexFlatIP (exact, Tier 1 only) | Custom |
+> ✓ Active in demo · ✗ Disabled in demo (present in full system)
+
+| Role | Technology | Source | Demo |
+|---|---|---|:---:|
+| Video Embedding | InternVideo2-1B (512-dim, 4 frames) | Shanghai AI Lab, CVPR 2024 | ✓ |
+| Sparse Retrieval | BM25 + spaCy lemmatizer (k1=1.5, b=0.75) | rank_bm25 | ✓ |
+| Dense Index | FAISS IVFFlat (nlist=100, nprobe=10) | Meta AI Research | ✓ |
+| Retrieval Fusion | WRRF (w_visual=0.6, w_text=0.4, k=60) | Custom (Cormack 2009) | ✓ |
+| Reranking | ColBERT v2 MaxSim + PLAID centroid pruning | Stanford, SIGIR/NAACL 2022 | ✓ |
+| Final Reranking | ITM (InternVideo2 cross-attention, full 1k) | Custom integration | ✓ |
+| Text Embedding | InternVideo2 encode_text + mean pooling (ITC collapse workaround) | Custom | ✓ |
+| Video Transform | FFmpeg color grading (10 presets: warm / cool / golden hour / noir / cinematic / etc., Modal serverless) | FFmpeg | ✓ |
+| Transition Effects | DINOv2 visual similarity (CUT/CROSSFADE/MORPH) | Meta AI Research | ✓ |
+| Script Parsing | GPT-4o-mini → Scene Graph JSON (demo: pre-computed JSON) | OpenAI | ✗ |
+| Inverse Prompt | InversePromptEngine (attribute→cinematic prompt) | Custom | ✗ |
+| Color Normalization | DreamColour 3D LUT (assemble 시 첫 클립 기준 LAB 색공간 매핑) | CHAITron/DreamColour | ✓ |
+| Temporal Consistency | TC-Score (Optical Flow) — FFmpeg filters are deterministic; shot-level clips guarantee consistency via source | Custom | ✗ |
+| Shot Detection | TransNetV2 + Agglomerative Clustering — one frame per clip | Souček & Lokoč 2020 | ✗ |
+| Provenance | C2PA + ES256 signing | C2PA specification | ✗ |
+| Eval Index | FAISS IndexFlatIP (exact, Tier 1 only) | Custom | ✗ |
+
+## Web Demo Deployment
+
+```bash
+# Deploy Modal backend (Transform + Assemble API)
+modal deploy scripts/modal_transform.py
+
+# Build frontend + deploy to GitHub Pages
+cd videorag-demo
+npm run deploy
+```
 
 ## Quick Start (Colab)
 
@@ -380,7 +429,6 @@ notebooks/03_evaluation.ipynb
 - Google Colab (T4 GPU)
 - HuggingFace token (`HF_TOKEN`) — InternVideo2 weights
 - OpenAI API key — GPT-4o-mini (captions, Scene Graph, inverse prompts)
-- (Optional) Runway API key — for TRANSFORM path Runway v2v (falls back to TokenFlow locally)
 - (Optional) Papago API — Korean query translation
 - MSR-VTT videos — MSR-VTT.ZIP on Google Drive (see `data/msrvtt/README.md`)
 
@@ -392,10 +440,10 @@ videorag-public/
     pipeline.py                  # Main orchestrator
     data_models.py               # Shared data models
     input/
-      query_preprocessor.py      # Korean→English translation (Papago)
-      script_parser.py           # Screenplay → Scene Graph JSON (GPT-4o-mini)
+      query_preprocessor.py      # Korean→English translation (Papago)    [demo: disabled]
+      script_parser.py           # Screenplay → Scene Graph JSON (GPT-4o-mini) [demo: disabled — pre-computed]
     phase0_indexing/
-      shot_detector.py           # TransNetV2 + Agglomerative Clustering
+      shot_detector.py           # TransNetV2 + Agglomerative Clustering  [demo: disabled — one frame per clip]
       embedder.py                # InternVideo2-1B embedding (ITC: mean pooling, ITM: full token)
       vector_store.py            # FAISS IVFFlat index
       indexer.py                 # Phase 0 orchestrator
@@ -408,16 +456,16 @@ videorag-public/
       itm_scorer.py              # ITM final reranking (itm_head manually loaded)
     phase4_assembly/
       storyboard_mapper.py       # Scene Graph → 2-path routing
-      inverse_prompt_engine.py   # Inverse prompt + TokenFlow/Runway calls
-      tokenflow_wrapper.py       # TokenFlow video-to-video wrapper (subprocess)
+      inverse_prompt_engine.py   # Inverse prompt generation              [demo: disabled]
+      tokenflow_wrapper.py       # TokenFlow video-to-video wrapper       [demo: disabled]
       assembler.py               # Video assembly
       visual_scorer.py           # DINOv2 visual similarity
       transition_selector.py     # CUT/CROSSFADE/MORPH selection
-      colour_normalizer.py       # DreamColour 3D LUT
+      colour_normalizer.py       # DreamColour 3D LUT                    [demo: disabled]
       morph_transition.py        # Optical Flow morph transition
-      tc_scorer.py               # TC-Score
+      tc_scorer.py               # TC-Score                              [demo: disabled — FFmpeg filters are deterministic; shot-level clips guarantee consistency]
     phase5_c2pa/
-      c2pa_tagger.py             # C2PA ES256 signing
+      c2pa_tagger.py             # C2PA ES256 signing                    [demo: disabled]
     evaluation/
       faiss_flat_eval.py         # Exact-search eval index
   notebooks/
@@ -426,6 +474,8 @@ videorag-public/
     01b_caption_remaining.ipynb  # Caption generation for remaining 6,010
     02_demo.ipynb                # ★ PD Workstation
     03_evaluation.ipynb          # ★ MSR-VTT 1k-A benchmark
+  scripts/
+    modal_transform.py           # ★ Demo Transform/Assemble API (Modal deploy)
   docs/
     인덱싱_검색_과정_정리.md      # End-to-end indexing/search flow (step-by-step I/O spec)
     기술_출처_정리.md             # Per-module paper/license attribution
@@ -439,9 +489,9 @@ videorag-public/
 
 **Why 2-path routing?** If a clip matches, use it (USE_AS_IS). If attributes don't match or the score is low, transform it (TRANSFORM). Generating entirely new footage is better done with dedicated tools outside this system. The PD reviews every decision, so AI automation and human editorial judgment coexist.
 
-**Why TokenFlow + Runway dual transform backends?** Runway incurs API costs and requires internet. TokenFlow runs locally on Colab using Stable Diffusion 1.5 — zero cost. Keyframe subsampling (8fps extraction, 1 keyframe per 10 frames) makes it practical: a 5-second clip processes in ~30–60s on T4. TokenFlow is invoked as a subprocess (preprocess.py → run_tokenflow_pnp.py) rather than imported as a Python module, which avoids dependency conflicts. Both backends share the same Gradio interface, letting the PD decide the cost/quality tradeoff per clip.
+**Why FFmpeg filters for the demo transform?** Generative models (SD img2img, TokenFlow) unpredictably alter video content and take several minutes per clip — unsuitable for an interactive demo. FFmpeg filters (colorbalance, eq, hue, vignette) preserve original content and quality while instantly changing color tone and mood. 10 presets are provided (warm / cool / golden hour / noir / cinematic / documentary / dramatic / night / tense / vibrant), each mapping to a deterministic filter chain. Single-select UI prevents unintended combinations.
 
-**Why Inverse Prompt?** Telling Runway "change evening to night" just makes things darker. InversePromptEngine generates cinematic prompts with scene intent, producing far better transforms.
+**Why Inverse Prompt?** (full system; disabled in demo) Telling a generative model "change evening to night" just makes things darker. InversePromptEngine generates cinematic prompts with scene intent, producing far better transforms.
 
 **Why Hybrid Retrieval?** BM25 catches proper nouns and numbers; Dense (InternVideo2) captures semantic similarity. WRRF fuses both, ColBERT (PLAID centroid pruning, 10–50x faster than brute-force) reranks the top candidates with token-level precision, and ITM cross-attention performs final reranking. ITC text embeddings use mean pooling instead of CLS to work around the cosine collapse issue.
 

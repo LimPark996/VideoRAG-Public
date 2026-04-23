@@ -41,17 +41,13 @@ SPECIAL_STYLES = {"noir", "cinematic", "vintage", "foggy"}
 
 
 def _download_dinov2():
-    import torch
-    torch.hub.load("facebookresearch/dinov2", "dinov2_vits14", verbose=False)
-    print("DINOv2 다운로드 완료")
+    pass  # DINOv2 제거 — demo assemble은 CUT-only로 전환
 
 
 image = (
     modal.Image.debian_slim(python_version="3.11")
-    .apt_install("libgl1", "libglib2.0-0", "ffmpeg", "git")
+    .apt_install("libgl1", "libglib2.0-0", "ffmpeg")
     .pip_install(
-        "torch==2.1.2",
-        "torchvision==0.16.2",
         "opencv-python-headless",
         "Pillow",
         "requests",
@@ -59,19 +55,15 @@ image = (
         "python-multipart",
         "numpy<2.0",
     )
-    .run_function(_download_dinov2)
 )
 
 
-@app.cls(gpu="T4", image=image, scaledown_window=1800, timeout=300)
+@app.cls(image=image, scaledown_window=600, timeout=300)
 class TransformModel:
 
     @modal.enter()
     def load(self):
-        import torch
-        self.dino = torch.hub.load(
-            "facebookresearch/dinov2", "dinov2_vits14"
-        ).to("cuda").eval()
+        pass  # DINOv2 제거 — GPU 불필요
 
     def _apply_style_frame(self, frame, style: str):
         """OpenCV 프레임에 스타일 적용. BGR uint8 → BGR uint8."""
@@ -186,21 +178,38 @@ class TransformModel:
 
         return frame
 
-    def _process_video_opencv(self, in_path: str, out_path: str, style: str):
-        """OpenCV로 프레임별 스타일 적용 후 ffmpeg로 h264 재인코딩."""
+    def _process_video_opencv(self, in_path: str, out_path: str, style: str,
+                               start: float = 0, end: float = 0):
+        """OpenCV로 프레임별 스타일 적용 후 ffmpeg로 h264 재인코딩.
+        start/end(초)가 주어지면 해당 구간만 처리한다."""
         import cv2, os
         cap = cv2.VideoCapture(in_path)
         fps = cap.get(cv2.CAP_PROP_FPS) or 25.0
+        total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
         w = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
         h = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+
+        if end > start:
+            start_frame = max(0, int(start * fps))
+            end_frame = min(total_frames, int(end * fps))
+            cap.set(cv2.CAP_PROP_POS_FRAMES, start_frame)
+        else:
+            start_frame = 0
+            end_frame = total_frames
+
+        max_frames = end_frame - start_frame
         tmp = out_path + "_raw.mp4"
         writer = cv2.VideoWriter(tmp, cv2.VideoWriter_fourcc(*'mp4v'), fps, (w, h))
 
+        frame_count = 0
         while True:
+            if max_frames > 0 and frame_count >= max_frames:
+                break
             ret, frame = cap.read()
             if not ret:
                 break
             writer.write(self._apply_style_frame(frame, style))
+            frame_count += 1
 
         cap.release()
         writer.release()
@@ -210,26 +219,6 @@ class TransformModel:
         )
         os.path.exists(tmp) and os.unlink(tmp)
 
-    def _dino_sim(self, frame_a, frame_b) -> float:
-        import torch
-        from torchvision import transforms
-        from PIL import Image
-        import cv2
-
-        tf = transforms.Compose([
-            transforms.Resize((224, 224)),
-            transforms.ToTensor(),
-            transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225]),
-        ])
-
-        def feat(f):
-            pil = Image.fromarray(cv2.cvtColor(f, cv2.COLOR_BGR2RGB))
-            t = tf(pil).unsqueeze(0).to("cuda")
-            with torch.no_grad():
-                v = self.dino(t)
-            return v / v.norm(dim=-1, keepdim=True)
-
-        return float((feat(frame_a) * feat(frame_b)).sum())
 
     def _build_lut(self, source_frame, ref_frame, size=17, strength=0.8):
         import numpy as np
@@ -290,20 +279,29 @@ class TransformModel:
         os.system(f'ffmpeg -y -i {tmp} -vcodec libx264 -pix_fmt yuv420p -movflags +faststart {out_path} -loglevel error')
         os.path.exists(tmp) and os.unlink(tmp)
 
-    def _transition(self, seg_a: str, seg_b: str, out: str, mode: str):
+    def _get_duration(self, path: str) -> float:
+        import subprocess, json
+        result = subprocess.run(
+            ['ffprobe', '-v', 'quiet', '-print_format', 'json', '-show_streams', path],
+            capture_output=True, text=True
+        )
+        try:
+            info = json.loads(result.stdout)
+            for stream in info.get('streams', []):
+                if stream.get('codec_type') == 'video':
+                    return float(stream.get('duration', 0))
+        except Exception:
+            pass
+        return 0.0
+
+    def _transition(self, seg_a: str, seg_b: str, out: str, mode: str = "cut"):
         import os
-        if mode == "cut":
-            os.system(
-                f'ffmpeg -y -i {seg_a} -i {seg_b} '
-                f'-filter_complex "[0:v][1:v]concat=n=2:v=1" '
-                f'-vcodec libx264 -pix_fmt yuv420p -movflags +faststart {out} -loglevel error'
-            )
-        else:
-            os.system(
-                f'ffmpeg -y -i {seg_a} -i {seg_b} '
-                f'-filter_complex "[0:v][1:v]xfade=transition=fade:duration=0.5:offset=0" '
-                f'-vcodec libx264 -pix_fmt yuv420p -movflags +faststart {out} -loglevel error'
-            )
+        scale_filter = 'scale=1280:720:force_original_aspect_ratio=decrease,pad=1280:720:(ow-iw)/2:(oh-ih)/2,setsar=1'
+        os.system(
+            f'ffmpeg -y -i {seg_a} -i {seg_b} '
+            f'-filter_complex "[0:v]{scale_filter}[va];[1:v]{scale_filter}[vb];[va][vb]concat=n=2:v=1" '
+            f'-vcodec libx264 -pix_fmt yuv420p -movflags +faststart {out} -loglevel error'
+        )
 
     @modal.asgi_app()
     def web(self):
@@ -332,6 +330,8 @@ class TransformModel:
             body = await request.json()
             video_url = body.get("video_url", "")
             style = body.get("style", "cinematic")
+            start = float(body.get("start", 0))
+            end = float(body.get("end", 0))
 
             if not video_url:
                 return JSONResponse({"success": False, "error": "video_url required"}, status_code=400)
@@ -351,7 +351,7 @@ class TransformModel:
             out_path = in_path.replace(".mp4", "_out.mp4")
 
             try:
-                model._process_video_opencv(in_path, out_path, style)
+                model._process_video_opencv(in_path, out_path, style, start=start, end=end)
                 if not os.path.exists(out_path):
                     return JSONResponse({"success": False, "error": "opencv processing failed"}, status_code=500)
 
@@ -380,63 +380,71 @@ class TransformModel:
             seg_paths = []
 
             try:
+                import time as _time
+                t0 = _time.time()
+                print(f"[ASSEMBLE] start  scenes={len(scenes)}")
+
                 for i, scene in enumerate(scenes):
                     seg = os.path.join(tmp_dir, f"seg_{i:02d}.mp4")
                     if scene["decision"] == "use_as_is":
+                        print(f"[ASSEMBLE] scene {i}: downloading {scene['video_url']}")
                         r = req.get(scene["video_url"], timeout=30)
-                        with open(seg, "wb") as f:
+                        raw = os.path.join(tmp_dir, f"raw_{i:02d}.mp4")
+                        with open(raw, "wb") as f:
                             f.write(r.content)
+                        start = float(scene.get("start", 0))
+                        end = float(scene.get("end", 0))
+                        if end > start:
+                            duration = end - start
+                            print(f"[ASSEMBLE] scene {i}: cropping {start:.2f}s–{end:.2f}s")
+                            os.system(
+                                f'ffmpeg -y -ss {start:.3f} -t {duration:.3f} -i {raw} '
+                                f'-c copy -avoid_negative_ts make_zero {seg} -loglevel error'
+                            )
+                            if not os.path.exists(seg) or os.path.getsize(seg) == 0:
+                                print(f"[ASSEMBLE] scene {i}: crop failed, using full clip")
+                                os.rename(raw, seg)
+                            else:
+                                print(f"[ASSEMBLE] scene {i}: crop ok  size={os.path.getsize(seg)}")
+                        else:
+                            os.rename(raw, seg)
                     else:
+                        print(f"[ASSEMBLE] scene {i}: writing transform b64 len={len(scene['video_b64'])}")
                         with open(seg, "wb") as f:
                             f.write(base64.b64decode(scene["video_b64"]))
                     seg_paths.append(seg)
+                print(f"[ASSEMBLE] all segments ready  elapsed={_time.time()-t0:.1f}s")
 
-                # DreamColour: 첫 번째 클립을 레퍼런스로 색감 통일
-                ref_cap = cv2.VideoCapture(seg_paths[0])
-                ret_ref, ref_frame = ref_cap.read()
-                ref_cap.release()
-                if ret_ref and len(seg_paths) > 1:
-                    for i, seg in enumerate(seg_paths[1:], 1):
-                        src_cap = cv2.VideoCapture(seg)
-                        total = int(src_cap.get(cv2.CAP_PROP_FRAME_COUNT))
-                        src_cap.set(cv2.CAP_PROP_POS_FRAMES, total // 2)
-                        ret_src, src_frame = src_cap.read()
-                        src_cap.release()
-                        if ret_src:
-                            try:
-                                lut = model._build_lut(src_frame, ref_frame)
-                                cc_path = seg.replace(".mp4", "_cc.mp4")
-                                model._apply_lut_to_video(seg, cc_path, lut)
-                                if os.path.exists(cc_path):
-                                    seg_paths[i] = cc_path
-                            except Exception as e:
-                                print(f"[DreamColour] 클립 {i} 색보정 실패: {e}")
+                # DINOv2 전환 스코어링은 demo에서 제외 (GPU 콜드스타트 60–120s 원인)
+                # 전체 시스템에서만 CUT/CROSSFADE/MORPH 자동 선택
+                transitions = ["cut"] * (len(seg_paths) - 1)
+                print(f"[ASSEMBLE] transitions: {transitions}")
 
-                transitions = []
-                for i in range(len(seg_paths) - 1):
-                    cap_a = cv2.VideoCapture(seg_paths[i])
-                    cap_b = cv2.VideoCapture(seg_paths[i + 1])
-                    total_a = int(cap_a.get(cv2.CAP_PROP_FRAME_COUNT))
-                    cap_a.set(cv2.CAP_PROP_POS_FRAMES, max(0, total_a - 1))
-                    ret_a, fa = cap_a.read()
-                    ret_b, fb = cap_b.read()
-                    cap_a.release(); cap_b.release()
+                n_seg = len(seg_paths)
+                final_path = os.path.join(tmp_dir, "final.mp4")
+                scale_filter = (
+                    'scale=1280:720:force_original_aspect_ratio=decrease,'
+                    'pad=1280:720:(ow-iw)/2:(oh-ih)/2,setsar=1,fps=30'
+                )
+                inputs = " ".join(f"-i {p}" for p in seg_paths)
+                filter_chains = "".join(
+                    f"[{i}:v]{scale_filter}[v{i}];" for i in range(n_seg)
+                )
+                concat_inputs = "".join(f"[v{i}]" for i in range(n_seg))
+                filter_complex = f'{filter_chains}{concat_inputs}concat=n={n_seg}:v=1[out]'
+                print(f"[ASSEMBLE] concat {n_seg} segments in one pass  elapsed={_time.time()-t0:.1f}s")
+                os.system(
+                    f'ffmpeg -y {inputs} '
+                    f'-filter_complex "{filter_complex}" -map "[out]" '
+                    f'-vcodec libx264 -pix_fmt yuv420p -movflags +faststart {final_path} -loglevel error'
+                )
+                if not os.path.exists(final_path) or os.path.getsize(final_path) == 0:
+                    return JSONResponse({"success": False, "error": "ffmpeg concat failed"}, status_code=500)
 
-                    if ret_a and ret_b:
-                        sim = model._dino_sim(fa, fb)
-                        mode = "morph" if sim > 0.85 else "crossfade" if sim > 0.6 else "cut"
-                    else:
-                        mode = "cut"
-                    transitions.append(mode)
-
-                current = seg_paths[0]
-                for i, (nxt, mode) in enumerate(zip(seg_paths[1:], transitions)):
-                    merged = os.path.join(tmp_dir, f"merged_{i:02d}.mp4")
-                    model._transition(current, nxt, merged, mode)
-                    current = merged
-
-                with open(current, "rb") as f:
+                print(f"[ASSEMBLE] encoding final  elapsed={_time.time()-t0:.1f}s")
+                with open(final_path, "rb") as f:
                     video_b64 = base64.b64encode(f.read()).decode()
+                print(f"[ASSEMBLE] done  b64_len={len(video_b64)}  total={_time.time()-t0:.1f}s")
 
                 return JSONResponse({"success": True, "video_b64": video_b64, "transitions": transitions})
 

@@ -17,10 +17,10 @@
 1. 시나리오 선택 (방송 주제 10개)
 2. 장면 탭 선택 → Top-5 ITM 재순위 클립 확인
 3. 클립 클릭 → In/Out 구간 설정
-4. **USE AS-IS** — 클립 그대로 사용 / **TRANSFORM** — OpenCV 색감 프리셋 18종 적용 (tone 7 · mood 4 · look 7)
-5. 각 장면마다 반복 (완료된 장면은 초록 배지)
-6. 합성 패널에서 드래그로 장면 순서 변경
-7. **합성** → DreamColour 3D LUT 색보정 + DINOv2 전환 스코어링(CUT/CROSSFADE/MORPH) → 최종 영상
+4. **라우팅 추천 확인** — 크롭 구간 중간 프레임을 Canvas API로 분석해 brightness(시간대)·saturation+green비율(계절)을 추정, 씬 요구 속성과 비교해 USE AS-IS / TRANSFORM을 제안. 단일 프레임 기반이므로 클립 내 색감·조명이 시간에 따라 크게 변하는 경우 추천이 부정확할 수 있음.
+5. **USE AS-IS** — 클립 그대로 사용 / **TRANSFORM** — OpenCV 색감 프리셋 18종 적용 (tone 7 · mood 4 · look 7)
+6. 각 장면마다 반복 (완료된 장면은 초록 배지)
+7. **합성** → FFmpeg multi-input concat (단일 패스) → 최종 영상
 
 > 스타일 변환은 속성 전환(낮→밤, 여름→겨울 분위기) 목적의 색보정이다. SD img2img·TokenFlow는 실제 적용 시 화질 손상이 심하고 클립당 수 분이 걸려 제외했다. OpenCV 방식도 원본 장면 특성에 따라 변화가 미미할 수 있다.
 
@@ -44,12 +44,12 @@ cd videorag-demo && npm run deploy
 | 희소 검색 | BM25 + spaCy 레마타이저 (k1=1.5, b=0.75) | rank_bm25 |
 | 밀집 인덱스 | FAISS IVFFlat (nlist=100, nprobe=10) | Meta AI Research |
 | 검색 융합 | WRRF (w_visual=0.6, w_text=0.4, k=60) | Cormack 2009 기반 자체 설계 |
-| 리랭킹 | ColBERT v2 MaxSim (PLAID centroid pruning) | Stanford, SIGIR/NAACL 2022 |
+| 리랭킹 | ColBERT v2 MaxSim (브루트포스, 7K 규모에서 충분) | Stanford, SIGIR/NAACL 2022 |
 | 최종 재순위 | ITM (InternVideo2 cross-attention, full 1k 적용) | 자체 통합 |
 | 텍스트 임베딩 | InternVideo2 encode_text + mean pooling (ITC collapse 우회) | 자체 수정 |
 | 영상 변환 | OpenCV 프레임별 색보정 18종 + FFmpeg 재인코딩 (Modal T4) | OpenCV / FFmpeg |
-| 전환 효과 | DINOv2 시각 유사도 (CUT/CROSSFADE/MORPH) | Meta AI Research |
-| 색보정 (합성) | DreamColour 3D LUT (LAB 색공간, 첫 클립 기준 통일) | CHAITron/DreamColour |
+| 전환 효과 | FFmpeg CUT (데모) — DINOv2 시각 유사도(CUT/CROSSFADE/MORPH)는 전체 시스템 전용. GPU 콜드스타트(60–120s)로 데모에서 제외 | Meta AI Research |
+| 색보정 (합성) | DreamColour 3D LUT — 전체시스템 전용 (데모 어셈블에선 타임아웃으로 제외) | CHAITron/DreamColour |
 
 ### 전체 시스템에만 있는 기술
 
@@ -62,6 +62,19 @@ cd videorag-demo && npm run deploy
 | 시간 일관성 | TC-Score (Optical Flow 기반) | 자체 설계 |
 | 출처 추적 | C2PA + ES256 서명 | C2PA specification |
 | 평가 인덱스 | FAISS IndexFlatIP (exact brute-force, Tier 1 전용) | 자체 구현 |
+
+---
+
+## 알려진 한계
+
+### 속성 분석 — 단일 프레임 편향
+
+전체 시스템(`_compute_attribute_match`)과 웹 데모(Canvas API) 모두 클립의 **단일 프레임**을 분석해 속성을 추론한다.
+
+- 전체 시스템: 첫 프레임 / 웹 데모: 크롭 구간 **중간 프레임** (cropStart + cropEnd) / 2
+- 클립이 낮→밤 전환처럼 시간적으로 이질적인 경우, 선택된 프레임이 클립의 지배적 분위기를 대표하지 못할 수 있다.
+- 속성 판단의 정확도는 클립 내 시각적 변화 폭에 비례해 낮아진다.
+- 개선 방향: 등간격 다중 프레임 샘플링 후 다수결 또는 평균 속성 사용.
 
 ---
 
@@ -134,7 +147,7 @@ MSR-VTT 1k-A split(테스트 영상 1,000개)에서 R@1/R@5/R@10을 논문 수�
                       TokenFlow / Runway ★전체시스템
     │
     ▼
-★ PD 리뷰 + 장면 순서 드래그 리오더
+★ PD 리뷰 (확정 / 재시도)
     │
     ▼
 [VideoAssembler]
@@ -157,7 +170,7 @@ MSR-VTT 1k-A split(테스트 영상 1,000개)에서 R@1/R@5/R@10을 논문 수�
 
 **왜 역프롬프트?** (전체 시스템) 생성 모델에 "저녁을 밤으로"라고 하면 그냥 어두워진다. InversePromptEngine이 장면 의도를 포함한 시네마틱 프롬프트를 생성해 변환 품질을 높인다.
 
-**왜 하이브리드 검색?** BM25는 고유명사·숫자, Dense(InternVideo2)는 의미 유사도를 잡는다. WRRF로 두 장점을 결합하고, ColBERT(PLAID centroid pruning, 10~50x 가속)로 정밀 리랭킹, ITM cross-attention으로 최종 재순위한다. ITC collapse 문제로 dense 채널은 CLS 대신 mean pooling을 사용한다.
+**왜 하이브리드 검색?** BM25는 고유명사·숫자, Dense(InternVideo2)는 의미 유사도를 잡는다. WRRF로 두 장점을 결합하고, ColBERT v2 MaxSim으로 정밀 리랭킹, ITM cross-attention으로 최종 재순위한다. ITC collapse 문제로 dense 채널은 CLS 대신 mean pooling을 사용한다.
 
 **왜 full ITM?** ITC cosine이 ≈0.9997로 collapse되어 top-128 필터링 시 정답을 22.5% 탈락시킨다. ITM을 전체 1,000개에 적용하면(R@1 41.1%) top-128→ITM(R@1 39.5%)보다 낫다.
 
@@ -187,7 +200,7 @@ videorag-public/
       dense_retriever.py           # FAISS 밀집 검색
       hybrid_fusion.py             # WRRF 융합
     phase3_reranking/
-      reranker.py                  # ColBERT v2 MaxSim + PLAID
+      reranker.py                  # ColBERT v2 MaxSim
       itm_scorer.py                # ITM 최종 재순위
     phase4_assembly/
       storyboard_mapper.py         # Scene Graph → 2경로 분기
@@ -256,9 +269,9 @@ notebooks/03_evaluation.ipynb      # 검색 파이프라인 정량 평가
 **VideoRAG** is a PD workstation for broadcast production. Given a screenplay or text query, it searches a video archive for matching scenes, applies color-grading transforms for attribute mismatches, and assembles a final edited video — with the PD reviewing every decision.
 
 **Live demo:** https://limpark996.github.io/VideoRAG-Public/
-→ 10 pre-computed broadcast scenarios · 163 MSR-VTT clips · Top-5 ITM-reranked results per scene · drag-to-reorder assembly
+→ 10 pre-computed broadcast scenarios · 163 MSR-VTT clips · Top-5 ITM-reranked results per scene · Canvas API mid-frame routing recommendation · confirm / retry per scene · FFmpeg CUT assembly
 
-**Pipeline:** BM25 + InternVideo2 dense retrieval → WRRF fusion → ColBERT rerank → ITM rerank → 2-path routing (USE_AS_IS / TRANSFORM) → DreamColour 3D LUT + DINOv2 transitions → final video
+**Pipeline:** BM25 + InternVideo2 dense retrieval → WRRF fusion → ColBERT rerank → ITM rerank → 2-path routing (USE_AS_IS / TRANSFORM) → OpenCV color grading (demo) / DreamColour 3D LUT (full system) → FFmpeg CUT assembly
 
 **Demo transform:** OpenCV per-frame color grading (18 presets: tone 7 · mood 4 · look 7). SD img2img and TokenFlow were tested but excluded — too slow and degraded content quality. The full system uses InversePromptEngine + TokenFlow/Runway for proper AI stylization.
 

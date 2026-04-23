@@ -127,7 +127,7 @@ MSR-VTT 1k-A split(테스트 영상 1,000개)에서 R@1/R@5/R@10을 논문 수�
 | 방법 | R@1 | R@5 | R@10 |
 |---|---|---|---|
 | InternVideo2-1B #F=4 (논문, ITC+ITM) | 51.9 | 74.6 | 81.7 |
-| Ours: full ITM | **41.1** | **65.9** | **76.1** |
+| Ours: full ITM | **44.4** | **66.3** | **75.8** |
 
 **-10.8%p 갭 원인:** ITC 텍스트 임베딩이 cosine ≈ 0.9997로 collapse되어 top-128 필터링을 쓰면 오히려 R@1이 39.5%로 하락한다. 현재는 ITM을 전체 1,000개에 직접 적용(full ITM)한다. collapse 원인(체크포인트 차이, feature pipeline 분기 등)은 미확정. 상세 진단은 `docs/issue_report_8차.md` 참고.
 
@@ -187,7 +187,7 @@ MSR-VTT 1k-A split(테스트 영상 1,000개)에서 R@1/R@5/R@10을 논문 수�
 
 **왜 하이브리드 검색?** BM25는 고유명사·숫자, Dense(InternVideo2)는 의미 유사도를 잡는다. WRRF로 두 장점을 결합하고, ColBERT v2 MaxSim으로 정밀 리랭킹, ITM cross-attention으로 최종 재순위한다. ITC collapse 문제로 dense 채널은 CLS 대신 mean pooling을 사용한다.
 
-**왜 full ITM?** 일반적으로는 ITC 임베딩으로 먼저 top-128을 골라 후보를 좁힌 뒤 무거운 ITM을 그 128개에만 돌린다. 그런데 ITC 임베딩이 collapse되어 모든 (텍스트, 영상) 쌍의 cosine이 ≈0.9997로 균일해지면, top-128 선별이 사실상 랜덤과 다를 바 없다. 실제로 정답의 22.5%가 이 단계에서 탈락했다. 따라서 ITC pre-filter를 건너뛰고 전체 1,000개에 직접 ITM을 적용하면(R@1 41.1%) top-128→ITM(R@1 39.5%)보다 4.9%p 높다.
+**왜 full ITM?** 일반적으로는 ITC 임베딩으로 먼저 top-128을 골라 후보를 좁힌 뒤 무거운 ITM을 그 128개에만 돌린다. 그런데 ITC 임베딩이 collapse되어 모든 (텍스트, 영상) 쌍의 cosine이 ≈0.9997로 균일해지면, top-128 선별이 사실상 랜덤과 다를 바 없다. 실제로 정답의 22.5%가 이 단계에서 탈락했다. 따라서 ITC pre-filter를 건너뛰고 전체 1,000개에 직접 ITM을 적용하면(R@1 44.4%) top-128→ITM(R@1 39.5%)보다 4.9%p 높다.
 
 **왜 C2PA?** AI 변환/생성 클립이 섞인 최종 영상에서 어느 클립이 아카이브 원본이고 어느 것이 AI 생성인지 암호학적으로 증명한다.
 
@@ -289,7 +289,7 @@ notebooks/03_evaluation.ipynb      # 검색 파이프라인 정량 평가
 
 **Demo transform:** OpenCV per-frame color grading (18 presets: tone 7 · mood 4 · look 7). SD img2img and TokenFlow were tested but excluded — too slow and degraded content quality. The full system uses InversePromptEngine + TokenFlow/Runway for proper AI stylization.
 
-**Retrieval results (MSR-VTT 1k-A):** R@1 41.1% / R@5 65.9% / R@10 76.1% (paper: 51.9% / 74.6% / 81.7%). Gap is due to ITC cosine collapse (≈0.9997); full ITM over all 1,000 videos outperforms ITC→top-128→ITM.
+**Retrieval results (MSR-VTT 1k-A):** R@1 44.4% / R@5 66.3% / R@10 75.8% (paper: 51.9% / 74.6% / 81.7%). Gap is due to ITC cosine collapse (≈0.9997); full ITM over all 1,000 videos outperforms ITC→top-128→ITM.
 
 **Deploy:**
 ```bash

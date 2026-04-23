@@ -394,12 +394,17 @@ class TransformModel:
                             f.write(r.content)
                         start = float(scene.get("start", 0))
                         end = float(scene.get("end", 0))
+                        crop_filter = (
+                            'scale=1280:720:force_original_aspect_ratio=decrease,'
+                            'pad=1280:720:(ow-iw)/2:(oh-ih)/2,setsar=1,fps=30'
+                        )
                         if end > start:
                             duration = end - start
-                            print(f"[ASSEMBLE] scene {i}: cropping {start:.2f}s–{end:.2f}s")
+                            print(f"[ASSEMBLE] scene {i}: cropping {start:.2f}s–{end:.2f}s (re-encode)")
                             os.system(
                                 f'ffmpeg -y -ss {start:.3f} -t {duration:.3f} -i {raw} '
-                                f'-c copy -avoid_negative_ts make_zero {seg} -loglevel error'
+                                f'-vf "{crop_filter}" -vcodec libx264 -pix_fmt yuv420p '
+                                f'-movflags +faststart {seg} -loglevel error'
                             )
                             if not os.path.exists(seg) or os.path.getsize(seg) == 0:
                                 print(f"[ASSEMBLE] scene {i}: crop failed, using full clip")
@@ -407,7 +412,14 @@ class TransformModel:
                             else:
                                 print(f"[ASSEMBLE] scene {i}: crop ok  size={os.path.getsize(seg)}")
                         else:
-                            os.rename(raw, seg)
+                            print(f"[ASSEMBLE] scene {i}: normalizing full clip")
+                            os.system(
+                                f'ffmpeg -y -i {raw} '
+                                f'-vf "{crop_filter}" -vcodec libx264 -pix_fmt yuv420p '
+                                f'-movflags +faststart {seg} -loglevel error'
+                            )
+                            if not os.path.exists(seg) or os.path.getsize(seg) == 0:
+                                os.rename(raw, seg)
                     else:
                         print(f"[ASSEMBLE] scene {i}: writing transform b64 len={len(scene['video_b64'])}")
                         with open(seg, "wb") as f:

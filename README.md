@@ -6,6 +6,20 @@
 
 ---
 
+## 왜 만들었나 / 어디에 쓸 수 있나
+
+MSR-VTT는 벤치마크 데이터셋일 뿐이다. 파이프라인 구조는 어떤 영상 아카이브에든 붙을 수 있다. 인덱싱 파이프라인(`01_indexing.ipynb`)을 해당 도메인 영상으로 다시 돌리면 되지만, 도메인 특성에 따라 검색 품질이 달라질 수 있고 추가 튜닝이 필요할 수 있다.
+
+현재 시스템이 실제로 증명한 것은 **검색 정확도**(R@1 44.4%)와 **파이프라인 구조**다. 색감 보정은 분위기를 바꾸는 수준이고, 어셈블리는 CUT 편집이다. 완성된 제품이 아니라 각 단계를 독립적으로 측정·교체할 수 있는 프로토타입으로 봐야 한다.
+
+| 도메인 | 이 파이프라인이 줄 수 있는 것 | 한계 |
+|---|---|---|
+| **방송·뉴스 아카이브** | 타임코드·파일명 검색 대신 자연어 쿼리로 후보 클립 좁히기 | 색감 보정이 극적인 속성 전환(낮→밤 등)을 완벽히 재현하진 못함 |
+| **스톡 영상 플랫폼** | 의미 유사 씬 그룹핑·후보 추천 내부 툴 | 도메인에 따라 검색 품질이 달라질 수 있음 |
+| **광고·숏폼 제작** | 대본 기반 후보 검색 + 구간 편집 워크플로우 | 완성 시안 자동 생성 수준은 아님. 편집자 개입 필수 |
+
+---
+
 ## 웹 데모 (GitHub Pages)
 
 **주소:** https://limpark996.github.io/VideoRAG-Public/
@@ -48,8 +62,7 @@ cd videorag-demo && npm run deploy
 | 최종 재순위 | ITM (InternVideo2 cross-attention, full 1k 적용) | 자체 통합 |
 | 텍스트 임베딩 | InternVideo2 encode_text + mean pooling (ITC collapse 우회) | 자체 수정 |
 | 영상 변환 | OpenCV 프레임별 색보정 18종 + FFmpeg 재인코딩 (Modal T4) | OpenCV / FFmpeg |
-| 전환 효과 | FFmpeg CUT (데모) — DINOv2 시각 유사도(CUT/CROSSFADE/MORPH)는 전체 시스템 전용. GPU 콜드스타트(60–120s)로 데모에서 제외 | Meta AI Research |
-| 색보정 (합성) | DreamColour 3D LUT — 전체시스템 전용 (데모 어셈블에선 타임아웃으로 제외) | CHAITron/DreamColour |
+| 전환 효과 | FFmpeg CUT (데모) — DINOv2 시각 유사도 기반 자동 전환(CUT/CROSSFADE/MORPH)은 전체 시스템 전용. GPU 콜드스타트(60–120s)로 데모 제외 | FFmpeg / DINOv2(Meta AI) + 자체 전환 로직 |
 
 ### 전체 시스템에만 있는 기술
 
@@ -57,7 +70,9 @@ cd videorag-demo && npm run deploy
 |---|---|---|
 | 대본 파싱 | GPT-4o-mini → Scene Graph JSON | OpenAI |
 | 역프롬프트 | InversePromptEngine (속성→시네마틱 프롬프트, Rule-based) | 자체 설계 |
-| AI 변환 | TokenFlow video-to-video / Runway API | TokenFlow / Runway |
+| AI 변환 | TokenFlow video-to-video / Runway API / SD img2img (적용 후 화질 손상·속도 문제로 제외) | TokenFlow / Runway / Stable Diffusion |
+| 색보정 (합성) | DreamColour 3D LUT (Reinhard colour transfer 기반 3D LUT 자동 생성) | CHAITron/DreamColour |
+| DINOv2 전환 | 시각 유사도 점수로 CUT/CROSSFADE/MORPH 자동 선택 (visual_scorer.py) | DINOv2: Meta AI Research + 자체 전환 로직 |
 | 샷 탐지 | TransNetV2 + Agglomerative Clustering | Souček & Lokoč 2020 |
 | 시간 일관성 | TC-Score (Optical Flow 기반) | 자체 설계 |
 | 출처 추적 | C2PA + ES256 서명 | C2PA specification |
@@ -151,9 +166,9 @@ MSR-VTT 1k-A split(테스트 영상 1,000개)에서 R@1/R@5/R@10을 논문 수�
     │
     ▼
 [VideoAssembler]
-    DreamColour 3D LUT (LAB 색보정)
-    DINOv2 전환 스코어링 (CUT / CROSSFADE / MORPH)
-    FFmpeg 렌더링
+    DreamColour 3D LUT (LAB 색보정) ★전체시스템
+    DINOv2 전환 스코어링 (CUT / CROSSFADE / MORPH) ★전체시스템
+    FFmpeg 렌더링 ★데모
     │
     ▼
 최종 영상
@@ -172,7 +187,7 @@ MSR-VTT 1k-A split(테스트 영상 1,000개)에서 R@1/R@5/R@10을 논문 수�
 
 **왜 하이브리드 검색?** BM25는 고유명사·숫자, Dense(InternVideo2)는 의미 유사도를 잡는다. WRRF로 두 장점을 결합하고, ColBERT v2 MaxSim으로 정밀 리랭킹, ITM cross-attention으로 최종 재순위한다. ITC collapse 문제로 dense 채널은 CLS 대신 mean pooling을 사용한다.
 
-**왜 full ITM?** ITC cosine이 ≈0.9997로 collapse되어 top-128 필터링 시 정답을 22.5% 탈락시킨다. ITM을 전체 1,000개에 적용하면(R@1 41.1%) top-128→ITM(R@1 39.5%)보다 낫다.
+**왜 full ITM?** 일반적으로는 ITC 임베딩으로 먼저 top-128을 골라 후보를 좁힌 뒤 무거운 ITM을 그 128개에만 돌린다. 그런데 ITC 임베딩이 collapse되어 모든 (텍스트, 영상) 쌍의 cosine이 ≈0.9997로 균일해지면, top-128 선별이 사실상 랜덤과 다를 바 없다. 실제로 정답의 22.5%가 이 단계에서 탈락했다. 따라서 ITC pre-filter를 건너뛰고 전체 1,000개에 직접 ITM을 적용하면(R@1 41.1%) top-128→ITM(R@1 39.5%)보다 4.9%p 높다.
 
 **왜 C2PA?** AI 변환/생성 클립이 섞인 최종 영상에서 어느 클립이 아카이브 원본이고 어느 것이 AI 생성인지 암호학적으로 증명한다.
 
@@ -207,11 +222,10 @@ videorag-public/
       inverse_prompt_engine.py     # 역프롬프트 생성        [전체시스템]
       tokenflow_wrapper.py         # TokenFlow 래퍼         [전체시스템]
       assembler.py                 # 영상 어셈블리
-      visual_scorer.py             # DINOv2 시각 유사도
-      transition_selector.py       # CUT/CROSSFADE/MORPH
-      colour_normalizer.py         # DreamColour 3D LUT     [데모: modal_transform.py에 인라인]
-      morph_transition.py          # Optical Flow 전환
-      tc_scorer.py                 # TC-Score               [전체시스템]
+      visual_scorer.py             # DINOv2 시각 유사도      [전체시스템]
+      transition_selector.py       # CUT/CROSSFADE/MORPH    [전체시스템]
+      colour_normalizer.py         # DreamColour 3D LUT     [전체시스템 / 데모: modal_transform.py 인라인]
+      morph_transition.py          # Optical Flow 전환       [전체시스템]
     phase5_c2pa/
       c2pa_tagger.py               # C2PA ES256 서명        [전체시스템]
     evaluation/

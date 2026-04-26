@@ -222,7 +222,8 @@ CLS token(id=101)
   → text_proj: cosine=0.9360 (거의 변화 없음)
 ```
 
-**collapse의 근본 원인은 CLS token embedding이 모든 문장에서 동일하게 시작하고, 이 체크포인트의 BERT가 이를 충분히 분화시키지 못하는 것이다.**
+**collapse의 근본 원인은 CLS token embedding이 모든 문장에서 동일하게 시작하고, 이 체크포인트의 BERT가 이를 충분히 분화시키지 못하는 것이다. CLS 토큰(id=101)은 모든 문장에서 항상 같은 번호라서 token embedding부터 동일한 벡터로 시작한다. (layer 0: cosine=1.0000) BERT가 레이어를 거치면서 분화를 시도하지만 layer 6(0.9254)에서 잠깐 내려갔다가 다시 0.99대로 수렴한다. 이 체크포인트에서 ITC 파인튜닝이 충분하지 않았던 것으로 추정된다.
+text_proj는 무관(+0.0034). 해결책은 CLS 대신 실제 내용 토큰들의 평균(mean pooling)을 쓰는 것이고, 이로써 cosine이 0.9997에서 0.6738로 내려간다.**
 
 ### 왜 논문은 51.9%를 냈는가
 
